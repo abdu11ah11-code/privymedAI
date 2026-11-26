@@ -70,7 +70,7 @@ PK_MOBILE_PREFIXES: tuple[str, ...] = (
 HOSPITAL_CORES: tuple[str, ...] = (
     "Crescent", "Evergreen", "Al-Noor", "Hayat", "Rehmat", "Sunrise", "Greenfield", "Silver Oak",
     "Northgate", "Sapphire", "Unity", "Hilal", "Sitara", "Riverside", "Cedar Hill", "Bright Path",
-    "Zarghoon", "Margalla View", "Indus Valley", "Lakeside", "Noor-ul-Huda", "Fatimid Care",
+    "Zarghoon", "Margalla View", "Indus Valley", "Lakeside", "Noor-ul-Huda", "Gulnar Care",
     "Saint Brendan", "Westbrook", "Harbour", "Maple Grove", "Kohsar", "Mehran",
 )  # fmt: skip
 
@@ -92,6 +92,68 @@ HOSPITAL_BLOCKLIST: tuple[str, ...] = (
 EMAIL_DOMAINS: tuple[str, ...] = (
     "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "proton.me", "icloud.com",
     "live.com", "mail.com",
+)  # fmt: skip
+
+# --------------------------------------------------------------------------
+# Non-PII clinical filler vocabulary (never annotated).
+DIAGNOSES: tuple[str, ...] = (
+    "type 2 diabetes mellitus", "essential hypertension", "community-acquired pneumonia",
+    "acute gastroenteritis", "iron deficiency anaemia", "migraine without aura", "bronchial asthma",
+    "urinary tract infection", "dengue fever", "typhoid fever", "hypothyroidism",
+    "chronic kidney disease stage 3", "ischaemic heart disease", "osteoarthritis of the knee",
+    "gastro-oesophageal reflux disease", "major depressive disorder", "cellulitis of the left leg",
+    "acute appendicitis", "viral hepatitis B", "COPD exacerbation", "allergic rhinitis",
+    "lower back pain", "pulmonary tuberculosis", "gestational diabetes", "atrial fibrillation",
+)  # fmt: skip
+
+COMPLAINTS: tuple[str, ...] = (
+    "fever for three days", "shortness of breath", "chest pain on exertion", "persistent cough",
+    "abdominal pain", "headache and dizziness", "burning micturition", "joint pain and swelling",
+    "loose motions", "generalised weakness", "palpitations", "skin rash", "vomiting since morning",
+    "lower back pain radiating to the leg", "blurred vision", "sore throat", "fatigue and weight loss",
+    "swelling of both feet", "difficulty sleeping", "loss of appetite",
+)  # fmt: skip
+
+MEDICATIONS: tuple[str, ...] = (
+    "Metformin 500 mg", "Amlodipine 5 mg", "Paracetamol 1 g", "Amoxicillin 500 mg",
+    "Omeprazole 20 mg", "Atorvastatin 20 mg", "Salbutamol inhaler", "Levothyroxine 50 mcg",
+    "Ceftriaxone 1 g IV", "Azithromycin 500 mg", "Insulin glargine 10 units", "Losartan 50 mg",
+    "Aspirin 75 mg", "Ferrous sulphate 200 mg", "Cetirizine 10 mg", "Ibuprofen 400 mg",
+    "Ondansetron 4 mg", "Pantoprazole 40 mg", "Bisoprolol 2.5 mg", "Sertraline 50 mg",
+)  # fmt: skip
+
+FREQUENCIES: tuple[str, ...] = (
+    "once daily", "twice daily", "three times a day", "at bedtime", "every 8 hours", "as needed",
+    "OD", "BD", "TDS", "PRN",
+)  # fmt: skip
+
+SPECIALTIES: tuple[str, ...] = (
+    "Cardiology", "Internal Medicine", "Paediatrics", "Gynaecology", "Orthopaedics",
+    "Pulmonology", "Nephrology", "Gastroenterology", "Endocrinology", "Neurology",
+    "General Surgery", "Dermatology", "Psychiatry", "ENT", "Ophthalmology",
+)  # fmt: skip
+
+CREDENTIALS: tuple[str, ...] = (
+    "MBBS", "MBBS, FCPS", "MBBS, MRCP", "FRCS", "MD", "MBBS, MCPS", "RN", "BSN",
+)  # fmt: skip
+
+WARDS: tuple[str, ...] = (
+    "Medical Ward 2", "Surgical Ward B", "ICU", "CCU", "Paediatric Ward", "Emergency",
+    "Female Medical Ward", "HDU", "OPD Room 14",
+)  # fmt: skip
+
+RELATIONS: tuple[tuple[str, str], ...] = (
+    ("mother", "f"), ("father", "m"), ("husband", "m"), ("wife", "f"), ("son", "m"),
+    ("daughter", "f"), ("brother", "m"), ("sister", "f"), ("guardian", "m"), ("uncle", "m"),
+)  # fmt: skip
+
+RELATIVE_DATES: tuple[str, ...] = (
+    "yesterday", "two weeks ago", "last month", "three days ago", "this morning",
+    "since last night", "a week ago", "earlier today",
+)  # fmt: skip
+
+DURATIONS: tuple[str, ...] = (
+    "3 days", "one week", "two weeks", "10 days", "a month", "48 hours", "6 weeks",
 )  # fmt: skip
 
 MONTHS = (

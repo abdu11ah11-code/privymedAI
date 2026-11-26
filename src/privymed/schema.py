@@ -54,6 +54,8 @@ class Span(BaseModel):
     label: EntityType
     score: float = Field(default=1.0, ge=0.0, le=1.0)
     source: str = Field(default=GOLD_SOURCE, min_length=1)
+    # Surface-format tag for gold spans (e.g. "dmy_slash"); used for error breakdowns.
+    fmt: str | None = None
 
     @field_validator("label", mode="before")
     @classmethod

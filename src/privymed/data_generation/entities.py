@@ -74,13 +74,16 @@ class EntityFactory:
     def __init__(self, seed: int, pk_ratio: float = 0.6) -> None:
         if not 0.0 <= pk_ratio <= 1.0:
             raise ValueError("pk_ratio must be in [0, 1]")
-        self.rng = random.Random(seed)
+        self.rng = random.Random()
         self.pk_ratio = pk_ratio
-        self._fakers: dict[str, Faker] = {}
-        for i, locale in enumerate(pools.INTL_LOCALES):
-            fk = Faker(locale)
+        self._fakers: dict[str, Faker] = {loc: Faker(loc) for loc in pools.INTL_LOCALES}
+        self.reseed(seed)
+
+    def reseed(self, seed: int) -> None:
+        """Reset all randomness. Cheap, so it can be called once per document."""
+        self.rng.seed(seed)
+        for i, fk in enumerate(self._fakers.values()):
             fk.seed_instance(seed * 1009 + i)
-            self._fakers[locale] = fk
 
     # ------------------------------------------------------------------ helpers
     def _digits(self, n: int) -> str:

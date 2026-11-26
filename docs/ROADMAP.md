@@ -31,4 +31,14 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
 - [x] Docs skeleton + CLAUDE.md
 - [x] Independent review (0 critical, 7 important, 8 minor; all important + minor fixed except Document hashability — not needed)
 - [x] First commit
-- [ ] GitHub remote + push (BLOCKED: needs `gh auth login` by owner)
+- [x] GitHub remote + push (github.com/abdu11ah11-code/privymedAI)
+
+## Milestone 2 tasks
+
+- [x] 2.1 Entity value generators (`EntityFactory`) + annotation guide
+- [x] 2.2 Template engine: offsets recorded at build time, per-note cast consistency, choice/optional syntax, per-document seeds
+- [ ] 2.3 ~20 template families across 9 document types + template lint tests
+- [ ] 2.4 Hard cases (entity-free notes, adjacency, name/word ambiguity, role swaps)
+- [ ] 2.5 Family-level splits + hashed manifests
+- [ ] 2.6 Validator + statistics report + near-duplicate / leakage checks
+- [ ] Independent review → commit → push
