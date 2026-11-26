@@ -1,0 +1,373 @@
+{
+  "errors": 0,
+  "warnings": 0,
+  "issues_by_check": {},
+  "issue_examples": [],
+  "duplicates": {
+    "doc_id_collisions": 0,
+    "exact_within": {},
+    "exact_cross": 0,
+    "near_within": {},
+    "near_cross": 0,
+    "near_cross_examples": [],
+    "max_cross_jaccard": 0.0,
+    "structural_cross": 0,
+    "structural_cross_examples": [],
+    "max_structural_cross_jaccard": 0.088
+  },
+  "identifier_overlap_with_train": {
+    "dev": {
+      "PATIENT": {
+        "distinct": 1081,
+        "seen_in_train": 203,
+        "share": 0.188,
+        "token_share": 0.739
+      },
+      "STAFF": {
+        "distinct": 702,
+        "seen_in_train": 177,
+        "share": 0.252,
+        "token_share": 0.796
+      },
+      "DATE": {
+        "distinct": 1221,
+        "seen_in_train": 200,
+        "share": 0.164,
+        "token_share": 0.293
+      },
+      "PHONE": {
+        "distinct": 985,
+        "seen_in_train": 13,
+        "share": 0.013,
+        "token_share": 0.141
+      },
+      "EMAIL": {
+        "distinct": 203,
+        "seen_in_train": 0,
+        "share": 0.0,
+        "token_share": 0.0
+      },
+      "CNIC": {
+        "distinct": 419,
+        "seen_in_train": 0,
+        "share": 0.0,
+        "token_share": 0.022
+      },
+      "ID": {
+        "distinct": 203,
+        "seen_in_train": 0,
+        "share": 0.0,
+        "token_share": 0.0
+      },
+      "ADDRESS": {
+        "distinct": 350,
+        "seen_in_train": 29,
+        "share": 0.083,
+        "token_share": 0.416
+      },
+      "HOSPITAL": {
+        "distinct": 205,
+        "seen_in_train": 4,
+        "share": 0.02,
+        "token_share": 0.351
+      }
+    },
+    "test_id": {
+      "PATIENT": {
+        "distinct": 1397,
+        "seen_in_train": 268,
+        "share": 0.192,
+        "token_share": 0.711
+      },
+      "STAFF": {
+        "distinct": 1615,
+        "seen_in_train": 421,
+        "share": 0.261,
+        "token_share": 0.754
+      },
+      "DATE": {
+        "distinct": 2034,
+        "seen_in_train": 440,
+        "share": 0.216,
+        "token_share": 0.296
+      },
+      "PHONE": {
+        "distinct": 939,
+        "seen_in_train": 12,
+        "share": 0.013,
+        "token_share": 0.141
+      },
+      "EMAIL": {
+        "distinct": 673,
+        "seen_in_train": 42,
+        "share": 0.062,
+        "token_share": 0.062
+      },
+      "CNIC": {
+        "distinct": 350,
+        "seen_in_train": 0,
+        "share": 0.0,
+        "token_share": 0.024
+      },
+      "ID": {
+        "distinct": 1761,
+        "seen_in_train": 0,
+        "share": 0.0,
+        "token_share": 0.0
+      },
+      "ADDRESS": {
+        "distinct": 579,
+        "seen_in_train": 43,
+        "share": 0.074,
+        "token_share": 0.37
+      },
+      "HOSPITAL": {
+        "distinct": 229,
+        "seen_in_train": 4,
+        "share": 0.017,
+        "token_share": 0.267
+      }
+    }
+  },
+  "formats_unseen_in_train": {
+    "dev": {},
+    "test_id": {}
+  },
+  "title_stats": {
+    "train": {
+      "PATIENT_after_dr": 0.004,
+      "STAFF_after_dr": 0.459
+    },
+    "dev": {
+      "PATIENT_after_dr": 0.002,
+      "STAFF_after_dr": 0.655
+    },
+    "test_id": {
+      "PATIENT_after_dr": 0.005,
+      "STAFF_after_dr": 0.525
+    }
+  },
+  "stats": {
+    "train": {
+      "documents": 4000,
+      "characters": 2140014,
+      "word_tokens": 496652,
+      "length_words": {
+        "mean": 80.0,
+        "median": 67.0,
+        "p90": 154.0,
+        "min": 13.0,
+        "max": 260.0
+      },
+      "length_tokens": {
+        "mean": 124.2,
+        "median": 102.0,
+        "p90": 246.0,
+        "min": 20.0,
+        "max": 397.0
+      },
+      "spans": 44747,
+      "spans_per_doc": 11.19,
+      "spans_by_type": {
+        "PATIENT": 7624,
+        "STAFF": 8117,
+        "DATE": 10208,
+        "PHONE": 3980,
+        "EMAIL": 1578,
+        "CNIC": 1324,
+        "ID": 5616,
+        "ADDRESS": 1376,
+        "HOSPITAL": 4924
+      },
+      "share_by_type": {
+        "PATIENT": 0.1704,
+        "STAFF": 0.1814,
+        "DATE": 0.2281,
+        "PHONE": 0.0889,
+        "EMAIL": 0.0353,
+        "CNIC": 0.0296,
+        "ID": 0.1255,
+        "ADDRESS": 0.0308,
+        "HOSPITAL": 0.11
+      },
+      "entity_free_share": 0.067,
+      "bundle_share": 0.2888,
+      "noise": {
+        "clean": 2800,
+        "heavy": 276,
+        "light": 720,
+        "upper": 101,
+        "lower": 103
+      },
+      "typo_spans": 100,
+      "doc_types": {
+        "admission_form": 296,
+        "appointment": 283,
+        "discharge_summary": 278,
+        "lab_report": 286,
+        "bundle": 1155,
+        "opd_note": 304,
+        "progress_note": 269,
+        "non_phi": 268,
+        "radiology_report": 282,
+        "referral": 292,
+        "prescription": 287
+      },
+      "formats_by_type": {
+        "PATIENT": 7,
+        "STAFF": 4,
+        "DATE": 14,
+        "PHONE": 17,
+        "EMAIL": 4,
+        "CNIC": 3,
+        "ID": 11,
+        "ADDRESS": 8,
+        "HOSPITAL": 2
+      }
+    },
+    "dev": {
+      "documents": 600,
+      "characters": 282132,
+      "word_tokens": 63061,
+      "length_words": {
+        "mean": 66.3,
+        "median": 55.0,
+        "p90": 127.0,
+        "min": 20.0,
+        "max": 175.0
+      },
+      "length_tokens": {
+        "mean": 105.1,
+        "median": 83.0,
+        "p90": 207.0,
+        "min": 28.0,
+        "max": 281.0
+      },
+      "spans": 6835,
+      "spans_per_doc": 11.39,
+      "spans_by_type": {
+        "PATIENT": 1260,
+        "STAFF": 838,
+        "DATE": 1386,
+        "PHONE": 1041,
+        "EMAIL": 203,
+        "CNIC": 534,
+        "ID": 203,
+        "ADDRESS": 422,
+        "HOSPITAL": 948
+      },
+      "share_by_type": {
+        "PATIENT": 0.1843,
+        "STAFF": 0.1226,
+        "DATE": 0.2028,
+        "PHONE": 0.1523,
+        "EMAIL": 0.0297,
+        "CNIC": 0.0781,
+        "ID": 0.0297,
+        "ADDRESS": 0.0617,
+        "HOSPITAL": 0.1387
+      },
+      "entity_free_share": 0.0467,
+      "bundle_share": 0.295,
+      "noise": {
+        "clean": 413,
+        "heavy": 43,
+        "light": 116,
+        "lower": 12,
+        "upper": 16
+      },
+      "typo_spans": 21,
+      "doc_types": {
+        "bundle": 177,
+        "appointment": 104,
+        "non_phi": 28,
+        "admission_form": 92,
+        "opd_note": 97,
+        "referral": 102
+      },
+      "formats_by_type": {
+        "PATIENT": 6,
+        "STAFF": 4,
+        "DATE": 14,
+        "PHONE": 17,
+        "EMAIL": 2,
+        "CNIC": 3,
+        "ID": 11,
+        "ADDRESS": 8,
+        "HOSPITAL": 2
+      }
+    },
+    "test_id": {
+      "documents": 1000,
+      "characters": 648481,
+      "word_tokens": 147343,
+      "length_words": {
+        "mean": 89.7,
+        "median": 77.0,
+        "p90": 178.0,
+        "min": 22.0,
+        "max": 246.0
+      },
+      "length_tokens": {
+        "mean": 147.3,
+        "median": 121.0,
+        "p90": 279.0,
+        "min": 29.0,
+        "max": 415.0
+      },
+      "spans": 12924,
+      "spans_per_doc": 12.92,
+      "spans_by_type": {
+        "PATIENT": 1576,
+        "STAFF": 1931,
+        "DATE": 2579,
+        "PHONE": 1035,
+        "EMAIL": 915,
+        "CNIC": 350,
+        "ID": 1939,
+        "ADDRESS": 685,
+        "HOSPITAL": 1914
+      },
+      "share_by_type": {
+        "PATIENT": 0.1219,
+        "STAFF": 0.1494,
+        "DATE": 0.1996,
+        "PHONE": 0.0801,
+        "EMAIL": 0.0708,
+        "CNIC": 0.0271,
+        "ID": 0.15,
+        "ADDRESS": 0.053,
+        "HOSPITAL": 0.1481
+      },
+      "entity_free_share": 0.058,
+      "bundle_share": 0.307,
+      "noise": {
+        "light": 201,
+        "upper": 28,
+        "clean": 696,
+        "lower": 11,
+        "heavy": 64
+      },
+      "typo_spans": 31,
+      "doc_types": {
+        "appointment": 159,
+        "bundle": 307,
+        "non_phi": 58,
+        "prescription": 166,
+        "lab_report": 156,
+        "discharge_summary": 154
+      },
+      "formats_by_type": {
+        "PATIENT": 6,
+        "STAFF": 4,
+        "DATE": 14,
+        "PHONE": 17,
+        "EMAIL": 4,
+        "CNIC": 3,
+        "ID": 11,
+        "ADDRESS": 8,
+        "HOSPITAL": 2
+      }
+    }
+  }
+}

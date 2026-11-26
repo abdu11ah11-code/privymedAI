@@ -5,8 +5,8 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
 | # | Milestone | Status | Completion criteria (quality gate) |
 |---|---|---|---|
 | 0 | Feasibility & architecture | DONE | Architecture approved by owner (2026-11-26) |
-| 1 | Foundation | IN PROGRESS | git + GitHub remote, uv env, schema + Detector interface, tests/ruff/mypy pass, docs skeleton |
-| 2 | Synthetic dataset engine | NOT STARTED | ≥15 template families, ≥8 doc types, validator 0 errors, family-level splits, leakage check passes, stats report |
+| 1 | Foundation | DONE | git + GitHub remote, uv env, schema + Detector interface, tests/ruff/mypy pass, docs skeleton |
+| 2 | Synthetic dataset engine | DONE (v1 frozen) | ≥15 template families, ≥8 doc types, validator 0 errors, family-level splits, leakage check passes, stats report |
 | 2b | OOD test set | NOT STARTED | 150–300 LLM-written notes, every annotation manually verified |
 | 3 | Baselines + span evaluator | NOT STARTED | Regex + Presidio implement `Detector`; evaluator matches hand-computed cases; seqeval cross-check |
 | 4 | Transformer training | NOT STARTED | 3 candidates × 3 seeds on dev; checkpoint reload reproduces dev score; experiments logged |
@@ -59,4 +59,4 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
     train (finite name pools; see ADR-007).
 - [x] Independent review: 0 critical, 5 important, 8 minor — all addressed (ADR-007), with
   regression tests in `tests/test_review_m2.py` (incl. the reviewer's simulated family leak).
-- [ ] Freeze v1 from a clean tree → validate → commit manifest + report → push
+- [x] Freeze v1 from a clean tree (commit `03e0263`) → validate (0 errors, 0 warnings) → manifest + report committed

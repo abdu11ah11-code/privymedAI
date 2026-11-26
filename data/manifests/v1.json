@@ -1,0 +1,149 @@
+{
+  "version": "v1",
+  "config": {
+    "version": "v1",
+    "seed": 42,
+    "split_seed": 7,
+    "pk_ratio": 0.6,
+    "sizes": {
+      "train": 4000,
+      "dev": 600,
+      "test_id": 1000
+    },
+    "bundle_ratio": 0.3,
+    "bundle_parts": [
+      2,
+      3
+    ],
+    "entity_free_ratio": 0.06,
+    "output_dir": "data\\synthetic",
+    "manifest_dir": "data\\manifests"
+  },
+  "split_assignment": {
+    "adm_form": "dev",
+    "adm_insurance": "train",
+    "adm_kv": "train",
+    "admin_memo": "dev",
+    "appt_booking": "test_id",
+    "appt_email": "train",
+    "appt_list": "train",
+    "appt_sms": "dev",
+    "dis_formal": "train",
+    "dis_letter": "test_id",
+    "dis_terse": "train",
+    "edu_leaflet": "train",
+    "lab_narrative": "train",
+    "lab_sms": "train",
+    "lab_table": "test_id",
+    "opd_bullets": "dev",
+    "opd_prose": "train",
+    "opd_soap": "train",
+    "prog_nursing": "train",
+    "prog_ward": "train",
+    "protocol_note": "test_id",
+    "rad_brief": "train",
+    "rad_report": "train",
+    "ref_email": "train",
+    "ref_form": "dev",
+    "ref_letter": "train",
+    "rx_label": "test_id",
+    "rx_refill": "train",
+    "rx_slip": "train"
+  },
+  "split_attempts": 4,
+  "files": {
+    "train": {
+      "path": "data/synthetic/v1/train.jsonl",
+      "sha256": "ebbc51e340ded7917c68c840e856114ef8298cfddd93e9d7906c37af223f654b",
+      "documents": 4000,
+      "spans": 44747,
+      "spans_by_type": {
+        "ADDRESS": 1376,
+        "CNIC": 1324,
+        "DATE": 10208,
+        "EMAIL": 1578,
+        "HOSPITAL": 4924,
+        "ID": 5616,
+        "PATIENT": 7624,
+        "PHONE": 3980,
+        "STAFF": 8117
+      },
+      "families": [
+        "adm_insurance",
+        "adm_kv",
+        "appt_email",
+        "appt_list",
+        "dis_formal",
+        "dis_terse",
+        "edu_leaflet",
+        "lab_narrative",
+        "lab_sms",
+        "opd_prose",
+        "opd_soap",
+        "prog_nursing",
+        "prog_ward",
+        "rad_brief",
+        "rad_report",
+        "ref_email",
+        "ref_letter",
+        "rx_refill",
+        "rx_slip"
+      ]
+    },
+    "dev": {
+      "path": "data/synthetic/v1/dev.jsonl",
+      "sha256": "f24482a85a4980bf28d4b7e65149b1206ad457a5e30efb0be038a389f9c62caa",
+      "documents": 600,
+      "spans": 6835,
+      "spans_by_type": {
+        "ADDRESS": 422,
+        "CNIC": 534,
+        "DATE": 1386,
+        "EMAIL": 203,
+        "HOSPITAL": 948,
+        "ID": 203,
+        "PATIENT": 1260,
+        "PHONE": 1041,
+        "STAFF": 838
+      },
+      "families": [
+        "adm_form",
+        "admin_memo",
+        "appt_sms",
+        "opd_bullets",
+        "ref_form"
+      ]
+    },
+    "test_id": {
+      "path": "data/synthetic/v1/test_id.jsonl",
+      "sha256": "86edd0d5032cf1c11754702379fb457e9b08706d328fc2615329ce344e824da4",
+      "documents": 1000,
+      "spans": 12924,
+      "spans_by_type": {
+        "ADDRESS": 685,
+        "CNIC": 350,
+        "DATE": 2579,
+        "EMAIL": 915,
+        "HOSPITAL": 1914,
+        "ID": 1939,
+        "PATIENT": 1576,
+        "PHONE": 1035,
+        "STAFF": 1931
+      },
+      "families": [
+        "appt_booking",
+        "dis_letter",
+        "lab_table",
+        "protocol_note",
+        "rx_label"
+      ]
+    }
+  },
+  "generator": {
+    "commit": "03e0263eea3901301265fa803af8712eb1c7bcb2",
+    "dirty": false,
+    "python": "3.12.10",
+    "faker": "40.63.0",
+    "uv_lock_sha256": "0255a38d23f8f7a3c7551decc80a1b6fe933174222731609278d2ff68e646b2c"
+  }
+}
