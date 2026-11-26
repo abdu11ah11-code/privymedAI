@@ -24,6 +24,8 @@ from faker import Faker
 from privymed.data_generation import pools
 from privymed.schema import EntityType
 
+AMBIGUOUS_NAME_RATE = 0.05
+
 Gender = Literal["m", "f"]
 Origin = Literal["pk", "intl"]
 
@@ -102,16 +104,22 @@ class EntityFactory:
     def person(self, gender: Gender | None = None, origin: Origin | None = None) -> Person:
         g: Gender = gender if gender is not None else ("m" if self.rng.random() < 0.5 else "f")
         o: Origin = origin if origin is not None else ("pk" if self._is_pk() else "intl")
+        middle = None
         if o == "pk":
             first = self.rng.choice(pools.PK_MALE_FIRST if g == "m" else pools.PK_FEMALE_FIRST)
             last = self.rng.choice(pools.PK_SURNAMES)
-            middle = None
             if g == "m" and self.rng.random() < 0.2:
                 first, middle = "Muhammad", first
-            return Person(first=first, last=last, gender=g, origin=o, middle=middle)
-        fk = self._faker()
-        first = fk.first_name_male() if g == "m" else fk.first_name_female()
-        return Person(first=first, last=fk.last_name(), gender=g, origin=o)
+        else:
+            fk = self._faker()
+            first = fk.first_name_male() if g == "m" else fk.first_name_female()
+            last = fk.last_name()
+        # Hard case: names that are also ordinary words ("Hope", "Will", "Brown").
+        if self.rng.random() < AMBIGUOUS_NAME_RATE:
+            first = self.rng.choice(pools.AMBIG_FIRST_M if g == "m" else pools.AMBIG_FIRST_F)
+        if self.rng.random() < AMBIGUOUS_NAME_RATE:
+            last = self.rng.choice(pools.AMBIG_LAST)
+        return Person(first=first, last=last, gender=g, origin=o, middle=middle)
 
     def name_text(self, person: Person, style: str | None = None) -> tuple[str, str]:
         """Render a person's name. Titles (Dr., Mr.) are never included — see annotation guide."""

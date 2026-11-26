@@ -15,7 +15,14 @@ from privymed.data_generation.engine import (
     render_line,
 )
 from privymed.data_generation.entities import EntityFactory, Value
-from privymed.schema import EntityType
+from privymed.data_generation.noise import CLEAN, NoiseProfile
+from privymed.schema import Document, EntityType
+
+
+def gen(
+    fam: TemplateFamily, f: EntityFactory, seed: int, i: int, noise: NoiseProfile = CLEAN
+) -> Document:
+    return generate_document(fam, f, seed, i, noise=noise)
 
 
 @pytest.fixture(scope="module")
@@ -68,7 +75,7 @@ def test_adjacent_entities_keep_separate_spans() -> None:
 # ------------------------------------------------------------------ labels by construction
 def test_every_span_surface_matches_its_label(factory: EntityFactory) -> None:
     for i in range(300):
-        doc = generate_document(DEMO, factory, 1, i)
+        doc = gen(DEMO, factory, 1, i)
         for s in doc.spans:
             surface = doc.span_text(s)
             if s.label is EntityType.EMAIL:
@@ -82,7 +89,7 @@ def test_every_span_surface_matches_its_label(factory: EntityFactory) -> None:
 def test_same_person_is_consistent_across_mentions(factory: EntityFactory) -> None:
     fam = _one_line_family("{patient.name:full} ... {patient.name:last_only}")
     for i in range(100):
-        doc = generate_document(fam, factory, 2, i)
+        doc = gen(fam, factory, 2, i)
         full, last = (doc.span_text(s) for s in doc.spans)
         assert full.endswith(" " + last)
 
@@ -90,14 +97,12 @@ def test_same_person_is_consistent_across_mentions(factory: EntityFactory) -> No
 def test_first_mention_defaults_to_full_name(factory: EntityFactory) -> None:
     fam = _one_line_family("{staff1.name}")
     for i in range(50):
-        doc = generate_document(fam, factory, 3, i)
+        doc = gen(fam, factory, 3, i)
         assert " " in doc.span_text(doc.spans[0])
 
 
 def test_staff_and_patient_labels(factory: EntityFactory) -> None:
-    doc = generate_document(
-        _one_line_family("{patient.name} {relative.name} {staff2.name}"), factory, 4, 0
-    )
+    doc = gen(_one_line_family("{patient.name} {relative.name} {staff2.name}"), factory, 4, 0)
     assert [s.label for s in doc.spans] == [
         EntityType.PATIENT,
         EntityType.PATIENT,
@@ -108,7 +113,7 @@ def test_staff_and_patient_labels(factory: EntityFactory) -> None:
 def test_age_consistent_with_dob_and_visit(factory: EntityFactory) -> None:
     fam = _one_line_family("{age}|{patient.dob:iso}|{date.visit:iso}")
     for i in range(200):
-        doc = generate_document(fam, factory, 5, i)
+        doc = gen(fam, factory, 5, i)
         age, dob, visit = doc.text.split("|")
         d, v = dt.date.fromisoformat(dob), dt.date.fromisoformat(visit)
         assert int(age) == v.year - d.year - ((v.month, v.day) < (d.month, d.day))
@@ -120,7 +125,7 @@ def test_discharge_after_admit_and_followup_after_visit(factory: EntityFactory) 
         "{date.admit:iso} {date.discharge:iso} {date.visit:iso} {date.followup:iso}"
     )
     for i in range(200):
-        a, d, v, f = map(dt.date.fromisoformat, generate_document(fam, factory, 6, i).text.split())
+        a, d, v, f = map(dt.date.fromisoformat, gen(fam, factory, 6, i).text.split())
         assert a < d and v < f and a <= v
 
 
@@ -151,41 +156,41 @@ def test_relation_is_plausible_for_patient_age() -> None:
 def test_fillers_are_never_annotated(factory: EntityFactory) -> None:
     fam = _one_line_family("{city} {time} {rel_date} {diagnosis} {medication} {age} {bp}")
     for i in range(50):
-        assert generate_document(fam, factory, 8, i).spans == ()
+        assert gen(fam, factory, 8, i).spans == ()
 
 
 # ------------------------------------------------------------------ syntax
 def test_choice_syntax_includes_empty_alternative(factory: EntityFactory) -> None:
     fam = _one_line_family("A[[|B|C]]D")
-    seen = {generate_document(fam, factory, 9, i).text for i in range(100)}
+    seen = {gen(fam, factory, 9, i).text for i in range(100)}
     assert seen == {"AD", "ABD", "ACD"}
 
 
 def test_choice_alternatives_may_contain_slots(factory: EntityFactory) -> None:
     fam = _one_line_family("[[Tel {patient.phone}|Email {patient.email}]]")
-    labels = {generate_document(fam, factory, 10, i).spans[0].label for i in range(60)}
+    labels = {gen(fam, factory, 10, i).spans[0].label for i in range(60)}
     assert labels == {EntityType.PHONE, EntityType.EMAIL}
 
 
 def test_optional_section_probability(factory: EntityFactory) -> None:
     fam = TemplateFamily("p", "t", (Section(("X",)), Section(("Y",), p=0.5)), sep="")
-    share = sum(generate_document(fam, factory, 11, i).text == "XY" for i in range(1000)) / 1000
+    share = sum(gen(fam, factory, 11, i).text == "XY" for i in range(1000)) / 1000
     assert 0.44 < share < 0.56
 
 
 def test_unknown_slot_raises(factory: EntityFactory) -> None:
     with pytest.raises(ValueError, match="unknown slot"):
-        generate_document(_one_line_family("{nonsense}"), factory, 0, 0)
+        gen(_one_line_family("{nonsense}"), factory, 0, 0)
 
 
 def test_unknown_name_style_raises(factory: EntityFactory) -> None:
     with pytest.raises(ValueError, match="name style"):
-        generate_document(_one_line_family("{patient.name:shouting}"), factory, 0, 0)
+        gen(_one_line_family("{patient.name:shouting}"), factory, 0, 0)
 
 
 def test_modifier_on_filler_raises(factory: EntityFactory) -> None:
     with pytest.raises(ValueError, match="modifier"):
-        generate_document(_one_line_family("{city:upper}"), factory, 0, 0)
+        gen(_one_line_family("{city:upper}"), factory, 0, 0)
 
 
 def test_section_validation() -> None:
@@ -199,9 +204,9 @@ def test_section_validation() -> None:
 def test_documents_are_order_independent() -> None:
     a = EntityFactory(0)
     for i in range(5):
-        generate_document(DEMO, a, 42, i)
-    after_others = generate_document(DEMO, a, 42, 5)
-    fresh = generate_document(DEMO, EntityFactory(999), 42, 5)
+        gen(DEMO, a, 42, i)
+    after_others = gen(DEMO, a, 42, 5)
+    fresh = gen(DEMO, EntityFactory(999), 42, 5)
     assert after_others == fresh
 
 

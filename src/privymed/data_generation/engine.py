@@ -24,8 +24,9 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import random
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
 from privymed.data_generation import pools
@@ -37,10 +38,15 @@ from privymed.data_generation.entities import (
     Person,
     Value,
 )
+from privymed.data_generation.noise import CLEAN, NoiseApplier, NoiseProfile, choose_profile
 from privymed.schema import Document, EntityType, Span
 
 _CHOICE = re.compile(r"\[\[(.*?)\]\]", re.DOTALL)
 _SLOT = re.compile(r"\{([a-z0-9_.]+)(?::([a-z0-9_]+))?\}")
+
+SHARED_SURNAME_RATE = 0.08
+NARRATIVE_RATE = 0.6
+BUNDLE_SEPARATORS = ("\n\n", "\n\n---\n\n", "\n\n==========\n\n", "\n\n[Page break]\n\n")
 
 PERSON_ROLES = ("patient", "patient2", "patient3", "relative", "staff1", "staff2", "staff3")
 # Name styles used for repeat mentions when the template gives no modifier.
@@ -51,19 +57,25 @@ _REPEAT_STYLES = ("full", "last_only", "initial_last", "first_only")
 class TextBuilder:
     """Accumulates text and records entity spans at append time."""
 
-    def __init__(self) -> None:
+    def __init__(self, noise: NoiseApplier | None = None) -> None:
         self._parts: list[str] = []
         self._length = 0
         self._spans: list[Span] = []
+        self._noise = noise
 
-    def add_text(self, text: str) -> None:
+    def _append(self, text: str) -> None:
         if text:
             self._parts.append(text)
             self._length += len(text)
 
+    def add_text(self, text: str) -> None:
+        self._append(self._noise.literal(text) if self._noise and text else text)
+
     def add_entity(self, value: Value) -> None:
+        if self._noise:
+            value = self._noise.entity(value)
         start = self._length
-        self.add_text(value.text)
+        self._append(value.text)
         self._spans.append(Span(start=start, end=self._length, label=value.label, fmt=value.fmt))
 
     @property
@@ -98,6 +110,14 @@ class NoteContext:
                 # Relatives usually share the patient's origin.
                 self._people[role] = self.f.person(
                     gender=gender, origin=self.person("patient").origin
+                )
+            elif role == "staff1" and self.rng.random() < SHARED_SURNAME_RATE:
+                # Hard case: doctor shares the patient's surname
+                # ("Ali Khan" seen by "Dr. Imran Khan").
+                patient = self.person("patient")
+                donor = self.f.person(origin=patient.origin)
+                self._people[role] = Person(
+                    first=donor.first, last=patient.last, gender=donor.gender, origin=patient.origin
                 )
             else:
                 self._people[role] = self.f.person()
@@ -279,6 +299,8 @@ class NoteContext:
                 return str(rng.randint(58, 120))
             case "temp":
                 return f"{rng.uniform(97.0, 103.0):.1f}"
+            case "narrative":  # 2-4 entity-free clinical sentences
+                return " ".join(rng.sample(pools.NARRATIVE, rng.randint(2, 4)))
         raise ValueError(f"unknown slot {head!r}")
 
 
@@ -307,6 +329,17 @@ class TemplateFamily:
     sections: tuple[Section, ...]
     sep: str = "\n"
     tags: tuple[str, ...] = field(default_factory=tuple)
+    # Indices of sections after which an entity-free narrative paragraph may be inserted.
+    narrative_after: tuple[int, ...] = ()
+
+    def __post_init__(self) -> None:
+        bad = [i for i in self.narrative_after if not 0 <= i < len(self.sections)]
+        if bad:
+            raise ValueError(f"{self.family_id}: narrative_after indices out of range: {bad}")
+
+    @property
+    def entity_free(self) -> bool:
+        return "entity_free" in self.tags
 
 
 def render_line(line: str, ctx: NoteContext, builder: TextBuilder) -> None:
@@ -329,21 +362,43 @@ def derive_seed(global_seed: int, family_id: str, index: int) -> int:
     return int.from_bytes(digest[:8], "big")
 
 
-def generate_document(
-    family: TemplateFamily, factory: EntityFactory, global_seed: int, index: int
-) -> Document:
-    seed = derive_seed(global_seed, family.family_id, index)
-    factory.reseed(seed)
-    ctx = NoteContext(factory)
-    builder = TextBuilder()
+def _render_family(family: TemplateFamily, ctx: NoteContext, builder: TextBuilder) -> None:
     first = True
-    for section in family.sections:
+    for i, section in enumerate(family.sections):
         if section.p < 1.0 and ctx.rng.random() >= section.p:
             continue
         if not first:
             builder.add_text(family.sep)
         render_line(ctx.rng.choice(section.variants), ctx, builder)
         first = False
+        if i in family.narrative_after and ctx.rng.random() < NARRATIVE_RATE:
+            builder.add_text(family.sep)
+            render_line("{narrative" + str(i) + "}", ctx, builder)
+
+
+def _start(
+    key: str, factory: EntityFactory, global_seed: int, index: int, noise: NoiseProfile | None
+) -> tuple[NoteContext, TextBuilder, NoiseProfile]:
+    factory.reseed(derive_seed(global_seed, key, index))
+    ctx = NoteContext(factory)
+    # Noise uses its own RNG stream so content is identical with and without noise:
+    # every noisy document has an exact clean twin (enables paired robustness evaluation).
+    noise_rng = random.Random(derive_seed(global_seed, key + "#noise", index))
+    profile = noise if noise is not None else choose_profile(noise_rng)
+    applier = NoiseApplier(profile, noise_rng) if profile != CLEAN else None
+    return ctx, TextBuilder(applier), profile
+
+
+def generate_document(
+    family: TemplateFamily,
+    factory: EntityFactory,
+    global_seed: int,
+    index: int,
+    noise: NoiseProfile | None = None,
+) -> Document:
+    """Render one document. ``noise=None`` samples a noise profile; pass ``CLEAN`` to disable."""
+    ctx, builder, profile = _start(family.family_id, factory, global_seed, index, noise)
+    _render_family(family, ctx, builder)
     return builder.build(
         doc_id=f"{family.family_id}-{index:05d}",
         metadata={
@@ -351,5 +406,39 @@ def generate_document(
             "doc_type": family.doc_type,
             "index": index,
             "global_seed": global_seed,
+            "noise": profile.name,
+        },
+    )
+
+
+def generate_bundle(
+    families: Sequence[TemplateFamily],
+    factory: EntityFactory,
+    global_seed: int,
+    index: int,
+    noise: NoiseProfile | None = None,
+) -> Document:
+    """Render several documents about the *same* patient into one record (EHR-export style).
+
+    All parts share one :class:`NoteContext`, so the patient, relatives,
+    hospital and key dates are consistent across parts. For split hygiene,
+    callers must only bundle families from the same split.
+    """
+    if len(families) < 2:
+        raise ValueError("a bundle needs at least two families")
+    key = "+".join(f.family_id for f in families)
+    ctx, builder, profile = _start(key, factory, global_seed, index, noise)
+    for n, family in enumerate(families):
+        if n:
+            builder.add_text(ctx.rng.choice(BUNDLE_SEPARATORS))
+        _render_family(family, ctx, builder)
+    return builder.build(
+        doc_id=f"bundle-{key}-{index:05d}",
+        metadata={
+            "family": key,
+            "doc_type": "bundle",
+            "index": index,
+            "global_seed": global_seed,
+            "noise": profile.name,
         },
     )

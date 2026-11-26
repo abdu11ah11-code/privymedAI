@@ -156,6 +156,92 @@ DURATIONS: tuple[str, ...] = (
     "3 days", "one week", "two weeks", "10 days", "a month", "48 hours", "6 weeks",
 )  # fmt: skip
 
+# --------------------------------------------------------------------------
+# Hard case: given names / surnames that are also ordinary English words.
+AMBIG_FIRST_F: tuple[str, ...] = (
+    "Hope",
+    "Faith",
+    "Grace",
+    "Rose",
+    "Joy",
+    "Amber",
+    "Iris",
+    "Ruby",
+    "June",
+    "May",
+    "Noor",
+    "Dua",
+    "Saba",
+)
+AMBIG_FIRST_M: tuple[str, ...] = (
+    "Will",
+    "Mark",
+    "Frank",
+    "Rich",
+    "Hunter",
+    "Bill",
+    "Jack",
+    "Guy",
+    "Sunny",
+    "Iqbal",
+    "Victor",
+)
+AMBIG_LAST: tuple[str, ...] = (
+    "Brown",
+    "White",
+    "Green",
+    "Young",
+    "King",
+    "Black",
+    "Hill",
+    "Wood",
+    "Bell",
+    "Rose",
+    "Hope",
+    "May",
+    "Iqbal",
+)
+
+# Entity-free clinical sentences. Several use name-words as ordinary words
+# (Frank, Bell, Wood, White, Will, May, Hope, Rose, Young, Green, Black) —
+# these are hard negatives for name detectors.
+NARRATIVE: tuple[str, ...] = (
+    "Frank blood was not seen on rectal examination.",
+    "Bell's palsy was considered and excluded.",
+    "Wood's lamp examination was negative.",
+    "White cell count is within normal limits.",
+    "Will review in clinic with the results.",
+    "May require admission if symptoms worsen.",
+    "The patient expressed hope of returning to work soon.",
+    "Rose spots were not observed.",
+    "Young adult with no known comorbidities.",
+    "Green sputum was reported over the last few days.",
+    "Black stools were denied.",
+    "Chest is clear to auscultation bilaterally.",
+    "Abdomen is soft and non-tender with no organomegaly.",
+    "Heart sounds are normal with no added murmurs.",
+    "There is no pedal oedema.",
+    "Neurological examination is grossly intact.",
+    "The surgical wound is clean and dry.",
+    "Pain is controlled with oral analgesia.",
+    "Oral intake has improved over the last 24 hours.",
+    "Blood cultures are pending.",
+    "Fluid balance was reviewed and found satisfactory.",
+    "Dietary advice was given and understood.",
+    "Smoking cessation was discussed.",
+    "Red flag symptoms were explained in detail.",
+    "Compliance with medication has been poor.",
+    "There is mild tenderness in the right iliac fossa.",
+    "Capillary refill time is less than 2 seconds.",
+    "The patient is alert and oriented to time, place and person.",
+    "Mobilising independently on the ward.",
+    "Plan discussed with the team on the morning round.",
+    "Repeat ECG shows normal sinus rhythm.",
+    "Urine dipstick was negative for nitrites.",
+    "Allergies: none known.",
+    "Consent was obtained after explaining risks and benefits.",
+)  # fmt: skip
+
 MONTHS = (
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December",

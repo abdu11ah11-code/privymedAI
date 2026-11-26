@@ -10,6 +10,8 @@ All notable changes to this project are documented here.
 - `Span.fmt` optional field carrying the gold surface-format tag.
 - 2.3 24 template families over 9 document types (discharge, OPD, referral, prescription, lab, appointment, admission, progress, radiology) in formal, shorthand, form, bullet, prose, SMS, email, table and key-value styles; template lint tests; multi-patient lists; age-plausible relatives.
 
+- 2.4 Hard cases and realism: `generate_bundle` (multi-document same-patient records), entity-free narrative paragraphs, `adm_insurance` / `appt_booking` contact-heavy families, CSV comma-adjacent entities, `edu_leaflet` / `protocol_note` entity-free families, ambiguous word-names, shared doctor/patient surnames, offset-safe noise module (`noise.py`) with per-document profiles on an independent RNG stream.
+
 ### Added — Milestone 1
 - Milestone 1 foundation: uv-managed Python 3.12 project, `src/` layout package `privymed`.
 - Core data contracts: `EntityType` (9-type schema), `Span`, `Document` with gold-annotation validation.

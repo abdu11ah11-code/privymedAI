@@ -13,6 +13,8 @@ Authoring rules (enforced by ``tests/test_families.py``):
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from privymed.data_generation.engine import Section as S
 from privymed.data_generation.engine import TemplateFamily as F
 
@@ -418,6 +420,8 @@ ADM_KV = F(
             (
                 "NAME={patient.name:upper};DOB={patient.dob:iso};CNIC={patient.cnic};MRN={patient.mrn}",
                 "name: {patient.name:lower} / dob: {patient.dob} / mrn: {patient.mrn}",
+                # CSV export: entities separated only by commas (adjacency hard case).
+                "{patient.name},{patient.cnic},{patient.dob:iso},{patient.phone},{patient.mrn}",
             )
         ),
         S(("ADDR={patient.address}",)),
@@ -510,16 +514,130 @@ RAD_BRIEF = F(
     ),
 )
 
-FAMILIES: tuple[F, ...] = (
+# ============================================================================ contact-heavy (balance)
+ADM_INSURANCE = F(
+    "adm_insurance",
+    "admission_form",
+    (
+        S(("{hospital} - PANEL / INSURANCE ADMISSION", "INSURANCE PRE-AUTHORISATION | {hospital}")),
+        S(("Claim ref: {id.claim}    Date: {date.admit}",)),
+        S(
+            (
+                "Policy holder: {relative.name} ({relative.relation})\nHolder CNIC: {relative.cnic}\nHolder email: {relative.email}",
+                "Insured member: {relative.name:last_first}, CNIC {relative.cnic}, contact {relative.phone}",
+            )
+        ),
+        S(
+            (
+                "Patient: {patient.name}\nPatient CNIC: {patient.cnic}\nDOB: {patient.dob}\nResidential address: {patient.address}\nMobile: {patient.phone}",
+            )
+        ),
+        S(("Correspondence address: {relative.address}",), p=0.5),
+        S(("Provisional diagnosis: {diagnosis}\nTreating doctor: Dr. {staff1.name}",)),
+        S(("Verified by {staff3.name}, Admissions Office",)),
+    ),
+)
+
+APPT_BOOKING = F(
+    "appt_booking",
+    "appointment",
+    (
+        S(("Online Booking Confirmation", "Your appointment is booked")),
+        S(("Booking reference: {id.booking}",)),
+        S(
+            (
+                "Name: {patient.name}\nEmail: {patient.email}\nMobile: {patient.phone}\nCNIC: {patient.cnic}",
+                "Booked for {patient.title} {patient.name} (CNIC {patient.cnic}). Contact: {patient.email}, {patient.phone}.",
+            )
+        ),
+        S(("Clinic: {hospital}, {hospital.address}",)),
+        S(("Doctor: Dr. {staff1.name} ({specialty})\nDate: {date.followup}   Time: {time}",)),
+        S(("A confirmation has been sent to {patient.email}.",), p=0.6),
+        S(("Questions? Write to {hospital.email} or call {hospital.phone}.",)),
+    ),
+)
+
+# ============================================================================ entity-free (hard negatives)
+EDU_LEAFLET = F(
+    "edu_leaflet",
+    "non_phi",
+    (
+        S(("PATIENT INFORMATION: [[Managing|Living with|About]] {diagnosis}",)),
+        S(("{narrative}",)),
+        S(("Take your medicines exactly as prescribed, for example {medication} {freq}.",)),
+        S(
+            (
+                "If symptoms persist for more than {duration}, contact your doctor or visit the nearest emergency department.",
+            )
+        ),
+        S(
+            (
+                "Clinic hours: 8:00 AM - 2:00 PM, Monday to Saturday. Ward 4 visiting time is after {time}.",
+            )
+        ),
+        S(("{narrative2}",), p=0.7),
+    ),
+    sep="\n\n",
+    tags=("entity_free",),
+)
+
+PROTOCOL_NOTE = F(
+    "protocol_note",
+    "non_phi",
+    (
+        S(
+            (
+                "[[{specialty}|Ward]] Protocol: [[Sepsis screening|Insulin sliding scale|Fall prevention|Pre-operative checklist]]",
+            )
+        ),
+        S(("Version [[2.1|3.0|1.4]] - reviewed [[annually|every two years]].",)),
+        S(
+            (
+                "1. Check vital signs every [[4|6|8]] hours; escalate if BP is below 90/60 or saturation below 92%.\n"
+                "2. {narrative}\n"
+                "3. Document all doses of {medication} in the drug chart.\n"
+                "4. Inform the on-call doctor if there is no improvement within {duration}.",
+            )
+        ),
+        S(
+            (
+                "Reference ranges: haemoglobin 12.0-16.0 g/dL, WBC 4.0-11.0 x10^9/L, platelets 150-400.",
+            )
+        ),
+    ),
+    tags=("entity_free",),
+)
+
+# Where an entity-free narrative paragraph may follow a section (prose-like families only).
+_NARRATIVE_AFTER: dict[str, tuple[int, ...]] = {
+    "dis_formal": (5,),
+    "dis_letter": (3, 4),
+    "opd_soap": (4,),
+    "opd_prose": (2,),
+    "ref_letter": (4,),
+    "ref_email": (2,),
+    "rx_refill": (1,),
+    "lab_narrative": (1,),
+    "prog_ward": (1,),
+    "prog_nursing": (1,),
+    "rad_report": (2,),
+}
+
+_BASE: tuple[F, ...] = (
     DIS_FORMAL, DIS_LETTER, DIS_TERSE,
     OPD_SOAP, OPD_PROSE, OPD_BULLETS,
     REF_LETTER, REF_FORM, REF_EMAIL,
     RX_SLIP, RX_LABEL, RX_REFILL,
     LAB_TABLE, LAB_NARRATIVE, LAB_SMS,
-    APPT_SMS, APPT_EMAIL, APPT_LIST,
-    ADM_FORM, ADM_KV,
+    APPT_SMS, APPT_EMAIL, APPT_LIST, APPT_BOOKING,
+    ADM_FORM, ADM_KV, ADM_INSURANCE,
     PROG_WARD, PROG_NURSING,
     RAD_REPORT, RAD_BRIEF,
+    EDU_LEAFLET, PROTOCOL_NOTE,
 )  # fmt: skip
+
+FAMILIES: tuple[F, ...] = tuple(
+    replace(f, narrative_after=_NARRATIVE_AFTER.get(f.family_id, ())) for f in _BASE
+)
 
 FAMILIES_BY_ID: dict[str, F] = {f.family_id: f for f in FAMILIES}

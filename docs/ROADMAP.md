@@ -38,10 +38,14 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
 - [x] 2.1 Entity value generators (`EntityFactory`) + annotation guide
 - [x] 2.2 Template engine: offsets recorded at build time, per-note cast consistency, choice/optional syntax, per-document seeds
 - [x] 2.3 24 template families across 9 document types + template lint tests
-- [ ] 2.4 Hard cases (entity-free notes, adjacency, name/word ambiguity, role swaps)
-  - Known issues from 2.3 probe (2,400 docs): mean length 48 words (target 150–400 tokens);
-    ADDRESS 3.2%, EMAIL 2.9%, CNIC 2.5% of spans vs DATE 23.5%. Fix: longer composite notes,
-    narrative filler paragraphs, more contact/demographic blocks.
+- [x] 2.4 Hard cases + length/balance fixes
+  - Added: narrative paragraphs, same-patient bundles, contact-heavy families, CSV adjacency,
+    2 entity-free families, ambiguous names (~5%/name part), shared doctor/patient surnames (8%),
+    offset-safe noise on an independent RNG (every noisy doc has an exact clean twin).
+  - Measured (3,000 docs, 30% bundles): mean 80 words (was 48), CNIC/EMAIL/ADDRESS 3.6/3.9/4.0%
+    (was 2.5/2.9/3.2%), entity-free 5.1%.
+  - Open: length still below the 150–400 token target in words; measure real subword token
+    counts in M4 and set bundle ratio/size as a 2.5 config parameter.
 - [ ] 2.5 Family-level splits + hashed manifests
 - [ ] 2.6 Validator + statistics report + near-duplicate / leakage checks
 - [ ] Independent review → commit → push
