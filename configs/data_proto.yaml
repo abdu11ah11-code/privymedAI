@@ -1,0 +1,11 @@
+# 200-document prototype for manual inspection before the full v1 build.
+version: proto
+seed: 42
+split_seed: 7
+pk_ratio: 0.6
+sizes:
+  train: 140
+  dev: 30
+  test_id: 30
+bundle_ratio: 0.3
+bundle_parts: [2, 3]

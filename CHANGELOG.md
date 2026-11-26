@@ -12,6 +12,8 @@ All notable changes to this project are documented here.
 
 - 2.4 Hard cases and realism: `generate_bundle` (multi-document same-patient records), entity-free narrative paragraphs, `adm_insurance` / `appt_booking` contact-heavy families, CSV comma-adjacent entities, `edu_leaflet` / `protocol_note` entity-free families, ambiguous word-names, shared doctor/patient surnames, offset-safe noise module (`noise.py`) with per-document profiles on an independent RNG stream.
 
+- 2.5 `dataset.py`: `DataConfig`, constrained seeded family-level split assignment, same-split bundles, `privymed-generate` CLI, SHA-256 manifest with git commit + Faker version, `verify_manifest`, clean-tree guard; `admin_memo` third entity-free family; `configs/data_proto.yaml`, `configs/data_v1.yaml`; ADR-006.
+
 ### Added — Milestone 1
 - Milestone 1 foundation: uv-managed Python 3.12 project, `src/` layout package `privymed`.
 - Core data contracts: `EntityType` (9-type schema), `Span`, `Document` with gold-annotation validation.

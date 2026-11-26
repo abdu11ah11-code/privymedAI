@@ -46,6 +46,9 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
     (was 2.5/2.9/3.2%), entity-free 5.1%.
   - Open: length still below the 150–400 token target in words; measure real subword token
     counts in M4 and set bundle ratio/size as a 2.5 config parameter.
-- [ ] 2.5 Family-level splits + hashed manifests
+- [x] 2.5 Family-level splits + hashed manifests (`privymed-generate`, `verify_manifest`, clean-tree guard)
+  - Prototype (200 docs, split_seed 7): valid assignment on attempt 4; test-ID families =
+    appt_booking, dis_letter, lab_table, rx_label, protocol_note; all 9 types in every split.
+  - v1 (4000/600/1000) will be generated and its manifest committed **after** 2.6 validation passes.
 - [ ] 2.6 Validator + statistics report + near-duplicate / leakage checks
 - [ ] Independent review → commit → push

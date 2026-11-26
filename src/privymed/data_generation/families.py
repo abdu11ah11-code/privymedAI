@@ -608,6 +608,30 @@ PROTOCOL_NOTE = F(
     tags=("entity_free",),
 )
 
+ADMIN_MEMO = F(
+    "admin_memo",
+    "non_phi",
+    (
+        S(("STAFF NOTICE", "Internal Memo - {specialty} Department", "CIRCULAR No. [[12|27|41]]")),
+        S(
+            (
+                "All doctors and nursing staff are informed that the {ward} will be closed for maintenance [[next week|from Monday|this weekend]].",
+                "OPD timings will change to 9:00 AM - 1:00 PM during the holidays.",
+            )
+        ),
+        S(("Patients due for review should be rebooked within {duration}. {narrative}",)),
+        S(
+            (
+                "Extension 214 is the new number for the duty office; dial 0 for the operator.",
+                "Room 14 and Room 15 will be used for triage until further notice.",
+            ),
+            p=0.7,
+        ),
+        S(("- Medical Superintendent's Office", "- Nursing Administration")),
+    ),
+    tags=("entity_free",),
+)
+
 # Where an entity-free narrative paragraph may follow a section (prose-like families only).
 _NARRATIVE_AFTER: dict[str, tuple[int, ...]] = {
     "dis_formal": (5,),
@@ -633,7 +657,7 @@ _BASE: tuple[F, ...] = (
     ADM_FORM, ADM_KV, ADM_INSURANCE,
     PROG_WARD, PROG_NURSING,
     RAD_REPORT, RAD_BRIEF,
-    EDU_LEAFLET, PROTOCOL_NOTE,
+    EDU_LEAFLET, PROTOCOL_NOTE, ADMIN_MEMO,
 )  # fmt: skip
 
 FAMILIES: tuple[F, ...] = tuple(

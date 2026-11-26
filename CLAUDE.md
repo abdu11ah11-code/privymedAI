@@ -31,6 +31,9 @@ PrivyMed is a research prototype for de-identifying **synthetic** clinical-style
 - In a fresh shell, refresh PATH if tools aren't found:
   `$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')`
 
+- Commit messages: write them to a file and use `git commit -F <file>`. PowerShell 5.1 mangles
+  double quotes inside native-command arguments (an inline here-string with `"` fails).
+
 ## Verification before every commit
 
 ```powershell

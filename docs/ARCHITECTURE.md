@@ -74,6 +74,12 @@
 ### ADR-004 — Gold spans must not overlap or carry boundary whitespace
 - Enforced in `Document` validation so generator bugs fail loudly rather than silently corrupting training labels.
 
+### ADR-006 — Family-level, constrained random splits with frozen manifests
+- **Decision:** the split unit is the template family. Assignment is a seeded random draw under explicit constraints: one family held out per document type with ≥3 families (two if ≥4), alternating test/dev; one entity-free family per split; train keeps every document type; every split contains all 9 entity types (verified by rendering; the attempt count is recorded). Bundles combine only same-split families.
+- **Why:** document-level random splits leak template structure into test and inflate every system's scores. A hand-picked assignment would invite "did you choose easy test families?"; a constrained seeded draw is auditable.
+- **Freezing:** `privymed-generate` writes a manifest (`data/manifests/<version>.json`, committed) with per-file SHA-256, config, split assignment, git commit and Faker version, and refuses to run from uncommitted code. `verify_manifest()` must pass before any final test evaluation.
+- **Trade-off:** test-ID covers only the document types that had a held-out family; scores are lower than a random split would give, but honest.
+
 ### ADR-005 — Tooling
 - **uv** for environment/dependency management (fast, lockfile, reproducible). Heavy dependencies added per milestone as dependency groups.
 - **Vite + React + TypeScript** rather than Next.js: no SSR need; the static build is served by FastAPI from one container.

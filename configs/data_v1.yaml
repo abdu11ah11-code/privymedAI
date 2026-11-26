@@ -1,0 +1,12 @@
+# Synthetic dataset v1. Changing ANY value requires a new version name:
+# the v1 manifest (data/manifests/v1.json) freezes the resulting file hashes.
+version: v1
+seed: 42
+split_seed: 7
+pk_ratio: 0.6            # share of Pakistani-style names/addresses/phones
+sizes:
+  train: 4000
+  dev: 600
+  test_id: 1000
+bundle_ratio: 0.3        # share of documents that are multi-document same-patient bundles
+bundle_parts: [2, 3]     # parts per bundle (min, max)
