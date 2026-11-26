@@ -136,6 +136,18 @@ def test_relative_gender_matches_relation(factory: EntityFactory) -> None:
         assert ctx.person("relative").gender == expected
 
 
+def test_relation_is_plausible_for_patient_age() -> None:
+    f = EntityFactory(13)
+    for i in range(500):
+        f.reseed(i)
+        ctx = NoteContext(f)
+        relation = ctx.resolve("relative.relation")
+        if ctx.age() < 18:
+            assert relation in {"mother", "father", "guardian", "uncle"}
+        elif ctx.age() < 35:
+            assert relation not in {"son", "daughter"}
+
+
 def test_fillers_are_never_annotated(factory: EntityFactory) -> None:
     fam = _one_line_family("{city} {time} {rel_date} {diagnosis} {medication} {age} {bp}")
     for i in range(50):

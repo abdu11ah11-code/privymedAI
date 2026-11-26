@@ -37,8 +37,11 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
 
 - [x] 2.1 Entity value generators (`EntityFactory`) + annotation guide
 - [x] 2.2 Template engine: offsets recorded at build time, per-note cast consistency, choice/optional syntax, per-document seeds
-- [ ] 2.3 ~20 template families across 9 document types + template lint tests
+- [x] 2.3 24 template families across 9 document types + template lint tests
 - [ ] 2.4 Hard cases (entity-free notes, adjacency, name/word ambiguity, role swaps)
+  - Known issues from 2.3 probe (2,400 docs): mean length 48 words (target 150–400 tokens);
+    ADDRESS 3.2%, EMAIL 2.9%, CNIC 2.5% of spans vs DATE 23.5%. Fix: longer composite notes,
+    narrative filler paragraphs, more contact/demographic blocks.
 - [ ] 2.5 Family-level splits + hashed manifests
 - [ ] 2.6 Validator + statistics report + near-duplicate / leakage checks
 - [ ] Independent review → commit → push

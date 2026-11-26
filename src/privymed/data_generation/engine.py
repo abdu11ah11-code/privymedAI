@@ -42,7 +42,7 @@ from privymed.schema import Document, EntityType, Span
 _CHOICE = re.compile(r"\[\[(.*?)\]\]", re.DOTALL)
 _SLOT = re.compile(r"\{([a-z0-9_.]+)(?::([a-z0-9_]+))?\}")
 
-PERSON_ROLES = ("patient", "relative", "staff1", "staff2", "staff3")
+PERSON_ROLES = ("patient", "patient2", "patient3", "relative", "staff1", "staff2", "staff3")
 # Name styles used for repeat mentions when the template gives no modifier.
 _REPEAT_STYLES = ("full", "last_only", "initial_last", "first_only")
 
@@ -106,7 +106,15 @@ class NoteContext:
     def _relation(self) -> tuple[str, str]:
         key = "_relation"
         if key not in self._cache:
-            rel, g = self.rng.choice(pools.RELATIONS)
+            age = self.age()
+            if age < 18:  # minors: parents or guardians only
+                allowed = {"mother", "father", "guardian", "uncle"}
+            elif age < 35:  # adult children unlikely
+                allowed = {r for r, _ in pools.RELATIONS} - {"son", "daughter"}
+            else:
+                allowed = {r for r, _ in pools.RELATIONS}
+            options = [rg for rg in pools.RELATIONS if rg[0] in allowed]
+            rel, g = self.rng.choice(options)
             self._cache[key] = f"{rel}|{g}"
         rel, g = str(self._cache[key]).split("|")
         return rel, g
@@ -142,6 +150,8 @@ class NoteContext:
                 d = self.date_obj("visit") + dt.timedelta(days=rng.randint(7, 60))
             elif name == "report":
                 d = self.date_obj("visit") + dt.timedelta(days=rng.randint(0, 3))
+            elif name == "prev":
+                d = self.date_obj("visit") - dt.timedelta(days=rng.randint(30, 180))
             elif name == "admit":
                 d = self.date_obj("visit") - dt.timedelta(days=rng.randint(0, 5))
             else:
@@ -169,8 +179,9 @@ class NoteContext:
                 return self._date("dob", modifier)
             if attr == "title":
                 return self._title(head)
-            if attr in ("subj", "obj", "poss"):
-                return _pronoun(self.person(head).gender, attr)
+            if attr in ("subj", "obj", "poss", "subj_cap", "poss_cap"):
+                word = _pronoun(self.person(head).gender, attr.removesuffix("_cap"))
+                return word.capitalize() if attr.endswith("_cap") else word
             return self._cached(slot, lambda: self._person_attr(head, attr))
         if head == "date":
             return self._date(attr or "visit", modifier)
@@ -180,7 +191,9 @@ class NoteContext:
             return self._cached(slot, lambda: self._hospital_attr(attr))
         if modifier is not None:
             raise ValueError(f"filler slot {slot!r} does not take a modifier")
-        return self._cached(slot, lambda: self._filler(head, attr))
+        # Numbered fillers ({medication2}, {time3}) are independent draws of the same kind.
+        base = head.rstrip("0123456789")
+        return self._cached(slot, lambda: self._filler(base, attr))
 
     def _cached(self, key: str, make: Callable[[], Value | str]) -> Value | str:
         if key not in self._cache:
@@ -225,6 +238,20 @@ class NoteContext:
                 return str(self.age())
             case "sex":
                 return "male" if self.person("patient").gender == "m" else "female"
+            case "sex_short":
+                return "M" if self.person("patient").gender == "m" else "F"
+            case "hb":
+                return f"{rng.uniform(7.5, 16.5):.1f}"
+            case "wbc":
+                return f"{rng.uniform(3.0, 18.0):.1f}"
+            case "plt":
+                return str(rng.randint(90, 450))
+            case "glucose":
+                return str(rng.randint(70, 280))
+            case "creatinine":
+                return f"{rng.uniform(0.5, 3.5):.2f}"
+            case "sats":  # oxygen saturation (no digits: numbered-filler suffixes are stripped)
+                return str(rng.randint(88, 100))
             case "diagnosis":
                 return rng.choice(pools.DIAGNOSES)
             case "complaint":

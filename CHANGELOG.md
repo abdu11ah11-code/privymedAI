@@ -8,6 +8,7 @@ All notable changes to this project are documented here.
 - 2.1 `EntityFactory`: seeded generators for all 9 entity types with per-value format tags; annotation guide.
 - 2.2 Template engine (`TextBuilder`, `NoteContext`, `TemplateFamily`, `generate_document`): labels correct by construction, consistent per-note cast, DOB/age/date-order coherence, non-annotated distractor fillers, SHA-256 per-document seeds.
 - `Span.fmt` optional field carrying the gold surface-format tag.
+- 2.3 24 template families over 9 document types (discharge, OPD, referral, prescription, lab, appointment, admission, progress, radiology) in formal, shorthand, form, bullet, prose, SMS, email, table and key-value styles; template lint tests; multi-patient lists; age-plausible relatives.
 
 ### Added — Milestone 1
 - Milestone 1 foundation: uv-managed Python 3.12 project, `src/` layout package `privymed`.

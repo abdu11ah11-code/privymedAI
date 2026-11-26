@@ -43,6 +43,8 @@ select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF"]
 [tool.ruff.lint.per-file-ignores]
 # Data-only lookup tables: long wrapped literal rows read better than reflowed ones.
 "src/privymed/data_generation/pools.py" = ["E501"]
+# Template strings are data; short S/F aliases keep the family tables readable.
+"src/privymed/data_generation/families.py" = ["E501", "N817"]
 
 [tool.mypy]
 python_version = "3.12"
