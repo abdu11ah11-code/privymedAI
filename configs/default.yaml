@@ -1,0 +1,8 @@
+# Base project configuration. Milestone-specific configs (generation,
+# training, evaluation) will live alongside this file.
+seed: 42
+log_level: INFO
+paths:
+  data_dir: data
+  models_dir: models
+  reports_dir: reports

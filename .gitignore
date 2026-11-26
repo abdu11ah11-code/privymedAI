@@ -1,0 +1,77 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+token.txt
+*_token.txt
+*.token
+**/token
+hf_token
+credentials*.json
+secrets.*
+
+# Generated data: reproducible from configs + seed, so not committed.
+# Everything under data/ is ignored except placeholders, READMEs, and
+# data/manifests/ (split hashes, statistics) and data/fixtures/ (tiny test data).
+data/*
+!data/README.md
+!data/manifests/
+!data/fixtures/
+data/*/**
+!data/*/
+!data/**/.gitkeep
+!data/**/README.md
+!data/manifests/**
+!data/fixtures/**
+
+# Model artifacts (hosted on Hugging Face Hub instead)
+models/*
+!models/.gitkeep
+!models/README.md
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.pkl
+*.npy
+*.onnx
+*.gguf
+checkpoints/
+
+# Experiment tracker run directories (summaries go in reports/ deliberately)
+runs/
+wandb/
+mlruns/
+lightning_logs/
+
+# Frontend
+node_modules/
+frontend/dist/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Claude Code local settings
+.claude/settings.local.json
