@@ -515,9 +515,11 @@ def main(argv: Iterable[str] | None = None) -> None:
     out = root / args.report_dir
     out.mkdir(parents=True, exist_ok=True)
     (out / f"{version}_validation.json").write_text(
-        json.dumps(report, indent=2) + "\n", encoding="utf-8"
+        json.dumps(report, indent=2) + "\n", encoding="utf-8", newline="\n"
     )
-    (out / f"{version}_report.md").write_text(_markdown(version, report), encoding="utf-8")
+    (out / f"{version}_report.md").write_text(
+        _markdown(version, report), encoding="utf-8", newline="\n"
+    )
     print(f"{version}: {report['errors']} error(s), {report['warnings']} warning(s)")
     print(json.dumps(report["issues_by_check"], indent=2))
     sys.exit(1 if report["errors"] else 0)

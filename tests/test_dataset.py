@@ -119,6 +119,15 @@ def test_build_is_byte_reproducible(tmp_path: Path, built: tuple[Path, dict[str,
         assert _files(first)[split]["sha256"] == _files(second)[split]["sha256"]
 
 
+def test_manifest_and_splits_use_lf_line_endings(built: tuple[Path, dict[str, object]]) -> None:
+    """Outputs must be byte-identical across OSes (Windows would otherwise write CRLF)."""
+    root, manifest = built
+    paths = [root / "data" / "manifests" / "t.json"]
+    paths += [root / str(info["path"]) for info in _files(manifest).values()]
+    for path in paths:
+        assert b"\r\n" not in path.read_bytes(), path
+
+
 def test_verify_manifest_detects_tampering(tmp_path: Path) -> None:
     manifest = build_dataset(_small_cfg("tamper"), root=tmp_path)
     manifest_path = tmp_path / "data" / "manifests" / "tamper.json"
