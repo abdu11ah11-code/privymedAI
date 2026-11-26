@@ -300,7 +300,7 @@ class NoteContext:
             case "temp":
                 return f"{rng.uniform(97.0, 103.0):.1f}"
             case "narrative":  # 2-4 entity-free clinical sentences
-                return " ".join(rng.sample(pools.NARRATIVE, rng.randint(2, 4)))
+                return " ".join(rng.sample(self.f.narrative, rng.randint(2, 4)))
         raise ValueError(f"unknown slot {head!r}")
 
 

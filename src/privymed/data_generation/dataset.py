@@ -39,6 +39,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from privymed.config import find_repo_root
+from privymed.data_generation import pools
 from privymed.data_generation.engine import (
     TemplateFamily,
     derive_seed,
@@ -78,6 +79,8 @@ class DataConfig(BaseModel):
     sizes: SplitSizes
     bundle_ratio: float = Field(ge=0.0, le=1.0)
     bundle_parts: tuple[int, int] = (2, 3)
+    # Same entity-free share in every split, independent of how many families each split has.
+    entity_free_ratio: float = Field(default=0.06, ge=0.0, le=1.0)
     output_dir: Path = Path("data/synthetic")
     manifest_dir: Path = Path("data/manifests")
 
@@ -151,6 +154,59 @@ def assign_splits(
     raise RuntimeError(f"no valid split assignment in {_MAX_SPLIT_ATTEMPTS} attempts")
 
 
+# ============================================================================ split pools
+_POOL_SHARES = {"dev": 0.2, "test_id": 0.2}
+
+
+def partition_pool(
+    items: Sequence[str], split_seed: int, name: str
+) -> dict[SplitName, tuple[str, ...]]:
+    """Deterministically partition a value pool across splits (~60/20/20, each >= 1)."""
+    ordered = sorted(items)
+    random.Random(derive_seed(split_seed, f"pool:{name}", 0)).shuffle(ordered)
+    n_dev = max(1, round(len(ordered) * _POOL_SHARES["dev"]))
+    n_test = max(1, round(len(ordered) * _POOL_SHARES["test_id"]))
+    if n_dev + n_test >= len(ordered):
+        raise ValueError(f"pool {name!r} too small to partition ({len(ordered)} items)")
+    return {
+        "test_id": tuple(ordered[:n_test]),
+        "dev": tuple(ordered[n_test : n_test + n_dev]),
+        "train": tuple(ordered[n_test + n_dev :]),
+    }
+
+
+def _is_name_word_negative(sentence: str) -> bool:
+    first = sentence.split()[0].removesuffix("'s")
+    names = set(pools.AMBIG_FIRST_F + pools.AMBIG_FIRST_M + pools.AMBIG_LAST) | {
+        "Frank",
+        "Bell",
+        "Wood",
+    }
+    return first in names
+
+
+def split_pools(split_seed: int) -> dict[SplitName, dict[str, tuple[str, ...]]]:
+    """Per-split hospital-name cores and narrative sentences.
+
+    Without this, ~94% of test hospital strings also occurred in train (measured on
+    the v1 trial build), so HOSPITAL scores would measure memorisation. Name-word
+    negatives ("Frank blood ...") and generic sentences are partitioned separately so
+    every split gets some of each.
+    """
+    cores = partition_pool(pools.HOSPITAL_CORES, split_seed, "hospital_cores")
+    hard = [s for s in pools.NARRATIVE if _is_name_word_negative(s)]
+    generic = [s for s in pools.NARRATIVE if not _is_name_word_negative(s)]
+    hard_parts = partition_pool(hard, split_seed, "narrative_hard")
+    generic_parts = partition_pool(generic, split_seed, "narrative_generic")
+    return {
+        split: {
+            "hospital_cores": cores[split],
+            "narrative": hard_parts[split] + generic_parts[split],
+        }
+        for split in SPLITS
+    }
+
+
 # ============================================================================ generation
 def generate_split(
     split: SplitName,
@@ -158,18 +214,28 @@ def generate_split(
     n_docs: int,
     cfg: DataConfig,
 ) -> Iterator[Document]:
-    """Yield ``n_docs`` documents for one split: single documents and same-split bundles."""
+    """Yield ``n_docs`` documents for one split: singles, same-split bundles, entity-free docs."""
     plan_rng = random.Random(derive_seed(cfg.seed, f"plan:{split}", 0))
-    factory = EntityFactory(cfg.seed, pk_ratio=cfg.pk_ratio)
-    singles = sorted(families, key=lambda f: f.family_id)
-    pii = [f for f in singles if not f.entity_free]
+    split_pool = split_pools(cfg.split_seed)[split]
+    factory = EntityFactory(
+        cfg.seed,
+        pk_ratio=cfg.pk_ratio,
+        hospital_cores=split_pool["hospital_cores"],
+        narrative=split_pool["narrative"],
+    )
+    ordered = sorted(families, key=lambda f: f.family_id)
+    pii = [f for f in ordered if not f.entity_free]
+    free = [f for f in ordered if f.entity_free]
     lo, hi = cfg.bundle_parts
     for i in range(n_docs):
-        if len(pii) >= lo and plan_rng.random() < cfg.bundle_ratio:
+        r = plan_rng.random()
+        if free and r < cfg.entity_free_ratio:
+            doc = generate_document(free[i % len(free)], factory, cfg.seed, i)
+        elif len(pii) >= lo and r < cfg.entity_free_ratio + cfg.bundle_ratio:
             parts = plan_rng.sample(pii, plan_rng.randint(lo, min(hi, len(pii))))
             doc = generate_bundle(parts, factory, cfg.seed, i)
         else:
-            doc = generate_document(singles[i % len(singles)], factory, cfg.seed, i)
+            doc = generate_document(pii[i % len(pii)], factory, cfg.seed, i)
         yield Document(
             doc_id=doc.doc_id,
             text=doc.text,

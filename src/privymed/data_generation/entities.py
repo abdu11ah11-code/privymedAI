@@ -16,6 +16,7 @@ import random
 import re
 import string
 import unicodedata
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 
@@ -73,11 +74,23 @@ def _ascii_slug(text: str) -> str:
 class EntityFactory:
     """Produces synthetic entity values. ``pk_ratio`` = share of Pakistani-style values."""
 
-    def __init__(self, seed: int, pk_ratio: float = 0.6) -> None:
+    def __init__(
+        self,
+        seed: int,
+        pk_ratio: float = 0.6,
+        hospital_cores: Sequence[str] | None = None,
+        narrative: Sequence[str] | None = None,
+    ) -> None:
+        """``hospital_cores`` / ``narrative`` restrict pools per split (prevents memorisation
+        of hospital names and negative sentences across train/test); default: full pools."""
         if not 0.0 <= pk_ratio <= 1.0:
             raise ValueError("pk_ratio must be in [0, 1]")
         self.rng = random.Random()
         self.pk_ratio = pk_ratio
+        self.hospital_cores = tuple(hospital_cores or pools.HOSPITAL_CORES)
+        self.narrative = tuple(narrative or pools.NARRATIVE)
+        if len(self.narrative) < 4:
+            raise ValueError("narrative pool needs at least 4 sentences")
         self._fakers: dict[str, Faker] = {loc: Faker(loc) for loc in pools.INTL_LOCALES}
         self.reseed(seed)
 
@@ -265,7 +278,7 @@ class EntityFactory:
     # ------------------------------------------------------------------ hospitals
     def hospital(self) -> Value:
         for _ in range(50):
-            core = self.rng.choice(pools.HOSPITAL_CORES)
+            core = self.rng.choice(self.hospital_cores)
             name = f"{core} {self.rng.choice(pools.HOSPITAL_SUFFIXES)}"
             if not any(bad in name.lower() for bad in pools.HOSPITAL_BLOCKLIST):
                 break
@@ -282,7 +295,7 @@ class EntityFactory:
         domain = self.rng.choice(pools.EMAIL_DOMAINS)
         fmt = "freemail"
         if self.rng.random() < 0.2:
-            core = _ascii_slug(self.rng.choice(pools.HOSPITAL_CORES))
+            core = _ascii_slug(self.rng.choice(self.hospital_cores))
             kind = self.rng.choice(("hospital", "health", "clinic"))
             tld = self.rng.choice(("com.pk", "org.pk", "org", "com"))
             domain, fmt = f"{core}{kind}.{tld}", "org"
