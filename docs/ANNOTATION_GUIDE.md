@@ -18,7 +18,7 @@ These rules define what counts as an entity and where its boundaries are. The ge
 | PHONE | Phone and fax numbers incl. country code, parentheses, separators | Extension words (`ext.`) | |
 | EMAIL | The whole address | Surrounding `mailto:` or angle brackets | |
 | CNIC | 13-digit Pakistani national ID in any separator style | The label "CNIC:" | |
-| ID | MRNs, patient IDs, admission/lab/accession numbers, including prefixes that are part of the identifier (`MRN-2024-000123`, `#1913619`) | The label (`MRN:`, `Patient ID:`) when it is separated from the value | Prefix is included when it is glued to the value (no space). |
+| ID | MRNs, patient IDs, admission/lab/accession numbers, including prefixes **internal to the identifier** (`MRN-2024-000123`, `#1913619`, `LAB24-00112`) | **Field labels** ending in `:` or `=` (`MRN:`, `MRN=`, `Patient ID:`), **even when glued** to the value (`MRN:7159-0324-03` → span is `7159-0324-03`) | Rule: a prefix joined by `-` or `#` is part of the ID; a prefix joined by `:` or `=` is a field label. Same rule for CNIC (`CNIC=…`). |
 | ADDRESS | Street, house/flat/plot, locality, city, postcode, country **when part of an address** | A city mentioned alone as context ("referred from Lahore") | Single-city mentions are not annotated, which keeps the label definition consistent. |
 | HOSPITAL | Names and acronyms of hospitals, clinics, labs | Generic references ("the hospital", "OPD", "ward 4") | A city following the name in parentheses is not part of the span. |
 

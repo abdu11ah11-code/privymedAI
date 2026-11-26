@@ -27,7 +27,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import platform
 import random
+import re
 import subprocess
 from collections import Counter, defaultdict
 from collections.abc import Iterator, Sequence
@@ -56,7 +58,10 @@ from privymed.schema import Document, EntityType
 SplitName = Literal["train", "dev", "test_id"]
 SPLITS: tuple[SplitName, ...] = ("train", "dev", "test_id")
 _COVERAGE_RENDERS = 60
-_MAX_SPLIT_ATTEMPTS = 100
+# Every split: each entity type >= 2.5% of spans (estimated from renders). Measured ceiling with
+# the current families is ~3.2% (EMAIL/CNIC are the bottleneck); 2.5% is met by ~8% of draws.
+MIN_TYPE_SHARE = 0.025
+_MAX_SPLIT_ATTEMPTS = 500
 
 log = get_logger(__name__)
 
@@ -98,13 +103,24 @@ def load_data_config(path: Path) -> DataConfig:
 
 
 # ============================================================================ split assignment
-def _entity_types(family: TemplateFamily) -> set[EntityType]:
+def _entity_counts(family: TemplateFamily) -> Counter[EntityType]:
+    """Per-type span counts over a fixed sample of renders (used for split constraints)."""
     factory = EntityFactory(0)
-    return {
+    return Counter(
         s.label
         for i in range(_COVERAGE_RENDERS)
         for s in generate_document(family, factory, 0, i, noise=CLEAN).spans
-    }
+    )
+
+
+def _split_shares(
+    members: Sequence[TemplateFamily], counts: dict[str, Counter[EntityType]]
+) -> dict[EntityType, float]:
+    total: Counter[EntityType] = Counter()
+    for f in members:
+        total.update(counts[f.family_id])
+    n = sum(total.values())
+    return {t: (total[t] / n if n else 0.0) for t in EntityType}
 
 
 def _draw(families: Sequence[TemplateFamily], rng: random.Random) -> dict[str, SplitName]:
@@ -137,7 +153,7 @@ def assign_splits(
     families: Sequence[TemplateFamily], split_seed: int
 ) -> tuple[dict[str, SplitName], int]:
     """Return ``(family_id -> split, attempts)`` satisfying the coverage constraints."""
-    types = {f.family_id: _entity_types(f) for f in families}
+    counts = {f.family_id: _entity_counts(f) for f in families}
     doc_types = {f.doc_type for f in families if not f.entity_free}
     for attempt in range(1, _MAX_SPLIT_ATTEMPTS + 1):
         rng = random.Random(derive_seed(split_seed, "split", attempt))
@@ -145,8 +161,9 @@ def assign_splits(
         ok = True
         for split in SPLITS:
             members = [f for f in families if assignment[f.family_id] == split]
-            covered = set().union(*(types[f.family_id] for f in members))
-            if covered != set(EntityType):
+            # Every type present with a usable share, so dev can tune and test can measure
+            # every type (review finding M2-4: dev ID was 3.0% vs test 15.0%).
+            if min(_split_shares(members, counts).values()) < MIN_TYPE_SHARE:
                 ok = False
         train_types = {f.doc_type for f in families if assignment[f.family_id] == "train"}
         if ok and doc_types <= train_types:
@@ -176,7 +193,9 @@ def partition_pool(
 
 
 def _is_name_word_negative(sentence: str) -> bool:
-    first = sentence.split()[0].removesuffix("'s")
+    first = re.split(r"[-']", sentence.split()[0])[
+        0
+    ]  # "Faith-based" -> "Faith", "Bell's" -> "Bell"
     names = set(pools.AMBIG_FIRST_F + pools.AMBIG_FIRST_M + pools.AMBIG_LAST) | {
         "Frank",
         "Bell",
@@ -259,7 +278,16 @@ def _git_state(root: Path) -> dict[str, str | bool]:
         ).stdout.strip()
         dirty = bool(
             subprocess.run(
-                ["git", "status", "--porcelain", "--", "src", "configs"],
+                [
+                    "git",
+                    "status",
+                    "--porcelain",
+                    "--",
+                    "src",
+                    "configs",
+                    "pyproject.toml",
+                    "uv.lock",
+                ],
                 cwd=root,
                 capture_output=True,
                 text=True,
@@ -313,7 +341,14 @@ def build_dataset(
         "split_assignment": dict(sorted(assignment.items())),
         "split_attempts": attempts,
         "files": files,
-        "generator": {**_git_state(root), "faker": metadata.version("faker")},
+        "generator": {
+            **_git_state(root),
+            "python": platform.python_version(),
+            "faker": metadata.version("faker"),
+            "uv_lock_sha256": sha256_file(root / "uv.lock")
+            if (root / "uv.lock").is_file()
+            else None,
+        },
     }
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")

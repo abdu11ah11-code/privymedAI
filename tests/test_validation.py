@@ -85,7 +85,8 @@ def test_identifier_overlap_share() -> None:
         _doc("b", "Sara Malik", (0, 10, EntityType.PATIENT)),
     ]
     ov = identifier_overlap(train, test)["PATIENT"]
-    assert ov == {"distinct": 2, "seen_in_train": 1, "share": 0.5}
+    # whole strings: 1 of 2 seen; tokens: {ali, khan} of {ali, khan, sara, malik}
+    assert ov == {"distinct": 2, "seen_in_train": 1, "share": 0.5, "token_share": 0.5}
 
 
 def test_unseen_formats_ignores_typo_suffix() -> None:

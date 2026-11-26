@@ -97,5 +97,7 @@ class NoiseApplier:
                 m = self.rng.choice(words)
                 text = text[: m.start()] + typo_word(m.group(0), self.rng) + text[m.end() :]
                 fmt = f"{fmt}+typo"
-        text = _apply_case(text, self.profile.case)
-        return Value(text, value.label, fmt)
+        cased = _apply_case(text, self.profile.case)
+        if cased != text:
+            fmt = f"{fmt}+case"
+        return Value(cased, value.label, fmt)

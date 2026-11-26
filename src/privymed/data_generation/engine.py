@@ -45,6 +45,12 @@ _CHOICE = re.compile(r"\[\[(.*?)\]\]", re.DOTALL)
 _SLOT = re.compile(r"\{([a-z0-9_.]+)(?::([a-z0-9_]+))?\}")
 
 SHARED_SURNAME_RATE = 0.08
+DOCTOR_PATIENT_RATE = 0.04
+# Literal "Dr. "/"Dr " before a staff-name slot is replaced at render time by one of these.
+STAFF_TITLES: tuple[tuple[str, float], ...] = (
+    ("Dr. ", 55), ("Dr ", 10), ("", 25), ("Prof. ", 4), ("gendered", 6),
+)  # fmt: skip
+_STAFF_TITLE = re.compile(r"\bDr\.? (?=\{(staff\d)\.name)")
 NARRATIVE_RATE = 0.6
 BUNDLE_SEPARATORS = ("\n\n", "\n\n---\n\n", "\n\n==========\n\n", "\n\n[Page break]\n\n")
 
@@ -97,6 +103,7 @@ class NoteContext:
         self._mentions: dict[str, int] = {}
         self._dates: dict[str, dt.date] = {}
         self._cache: dict[str, Value | str] = {}
+        self._filler_keys: set[str] = set()
         # Notes usually use one date style; ~20% mix styles.
         self._date_fmt = self.rng.choice(DATE_FORMATS[:10])
         self._mix_dates = self.rng.random() < 0.2
@@ -155,7 +162,29 @@ class NoteContext:
         if role.startswith("staff"):
             return "Dr."
         p = self.person(role)
+        # Hard case: some patients are doctors, so "Dr." must not imply STAFF.
+        if self.rng.random() < DOCTOR_PATIENT_RATE:
+            return "Dr."
         return "Mr." if p.gender == "m" else self.rng.choice(("Ms.", "Mrs."))
+
+    def staff_title(self, role: str) -> str:
+        """Title (with trailing space, or empty) to print before a staff name.
+
+        Prevents the shortcut "name after 'Dr.' => STAFF": a quarter of staff
+        mentions carry no title, and others use Prof./Mr./Ms. (review finding M2-1).
+        """
+        titles = [t for t, _ in STAFF_TITLES]
+        weights = [w for _, w in STAFF_TITLES]
+        title: str = self.rng.choices(titles, weights=weights)[0]
+        if title == "gendered":
+            title = "Mr. " if self.person(role).gender == "m" else "Ms. "
+        return title
+
+    def new_part(self) -> None:
+        """Start a new bundle part: keep the cast, ids and dates; redraw fillers."""
+        for key in self._filler_keys:
+            self._cache.pop(key, None)
+        self._filler_keys.clear()
 
     # ---------------------------------------------------------------- dates
     def date_obj(self, name: str) -> dt.date:
@@ -213,6 +242,7 @@ class NoteContext:
             raise ValueError(f"filler slot {slot!r} does not take a modifier")
         # Numbered fillers ({medication2}, {time3}) are independent draws of the same kind.
         base = head.rstrip("0123456789")
+        self._filler_keys.add(slot)
         return self._cached(slot, lambda: self._filler(base, attr))
 
     def _cached(self, key: str, make: Callable[[], Value | str]) -> Value | str:
@@ -343,6 +373,7 @@ class TemplateFamily:
 
 
 def render_line(line: str, ctx: NoteContext, builder: TextBuilder) -> None:
+    line = _STAFF_TITLE.sub(lambda m: ctx.staff_title(m.group(1)), line)
     line = _CHOICE.sub(lambda m: ctx.rng.choice(m.group(1).split("|")), line)
     pos = 0
     for m in _SLOT.finditer(line):
@@ -431,6 +462,7 @@ def generate_bundle(
     for n, family in enumerate(families):
         if n:
             builder.add_text(ctx.rng.choice(BUNDLE_SEPARATORS))
+            ctx.new_part()  # fresh fillers per part: no repeated narrative inside a bundle
         _render_family(family, ctx, builder)
     return builder.build(
         doc_id=f"bundle-{key}-{index:05d}",

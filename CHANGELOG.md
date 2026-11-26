@@ -14,6 +14,17 @@ All notable changes to this project are documented here.
 
 - 2.5 `dataset.py`: `DataConfig`, constrained seeded family-level split assignment, same-split bundles, `privymed-generate` CLI, SHA-256 manifest with git commit + Faker version, `verify_manifest`, clean-tree guard; `admin_memo` third entity-free family; `configs/data_proto.yaml`, `configs/data_v1.yaml`; ADR-006.
 
+- 2.6 `bio.py` (span↔BIO, alignment errors), `validation.py` + `privymed-validate` (shape rules, BIO round-trip, MinHash near-duplicates, identifier overlap, unseen formats, stats report); per-split hospital-core and narrative pools; `entity_free_ratio`.
+
+### Fixed — Milestone 2 independent review (ADR-007)
+- PATIENT/STAFF title shortcut: randomised staff titles at render time, doctor-patients; validator reports title statistics.
+- Validator: family-vs-manifest leak check, calibrated structural near-duplicate check (catches a simulated 50-doc leak), doc_id collisions reported instead of crashing, token-level identifier overlap.
+- Per-split minimum entity-type share (2.5%) in split assignment.
+- Annotation guide: field labels ending in `:`/`=` are never part of ID/CNIC spans.
+- Pools: 14 more name-word negatives, 23 more hospital cores, building words disjoint from hospital cores.
+- Bundle parts redraw fillers; case noise tagged `+case`; manifest records Python version and `uv.lock` hash; dirty check covers `pyproject.toml`/`uv.lock`.
+- Unlabelled-PII regression scan (masked text has no phone/CNIC/email/year shapes).
+
 ### Added — Milestone 1
 - Milestone 1 foundation: uv-managed Python 3.12 project, `src/` layout package `privymed`.
 - Core data contracts: `EntityType` (9-type schema), `Span`, `Document` with gold-annotation validation.

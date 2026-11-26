@@ -71,6 +71,14 @@
 - **Decision:** test-ID (held-out template families from our generator), test-OOD (notes written by a different process — an LLM — and manually verified), optional external synthetic PII dataset.
 - **Why:** with a single generator, rules and the model are evaluated on the distribution they were designed for, inflating scores. The ID/OOD gap is the scientifically interesting result.
 
+- **Protocol (Milestone 2 review, finding M2-8):** test-ID shares *formats* with train by design (every phone/ID/date format in test also occurs in train). It is therefore an **in-format** benchmark: it measures generalisation to unseen *document structures*, not to unseen *formats*. Regex/Presidio rules and LLM prompts must be written from the annotation guide plus train/dev observations and error analysis on dev only; they must never be tuned on test-ID. Robustness to unseen formats is measured on test-OOD.
+
+### ADR-007 — Milestone 2 review outcomes (shortcuts and leakage)
+- **Title shortcut removed:** staff titles are randomised at render time (Dr./Dr/none/Prof./Mr./Ms.); ~4% of patient titles are "Dr.". STAFF-after-"Dr" fell from 70/100/82% (train/dev/test) to 46/66/53%; PATIENT-after-"Dr" rose from 0% to 0.2–0.5%.
+- **Leak detection:** the validator checks every document's families against the manifest and runs a *structural* near-duplicate check (entities → `<LABEL>`, digits → `0`, 3-word shingles, threshold 0.25). The threshold is calibrated: same-family nearest-neighbour p05 = 0.28, different-family max = 0.17. A simulated leak of 50 test-family documents into train is caught by both checks (regression test). The original raw-text check at 0.8 missed it.
+- **Memorisation reported at token level:** 71–80% of PATIENT/STAFF name tokens in eval splits also occur in train (whole-string: 17–26%). Name pools are deliberately not split (realism); M8 will report an "entities unseen in train" slice.
+- **Per-type floor:** every split's estimated share of each entity type ≥ 2.5%. Measured ceiling with the current families is ~3.2% (EMAIL/CNIC are the bottleneck); dev still has only ~3% ID spans. Documented limitation; more EMAIL/CNIC-bearing families would raise the ceiling.
+
 ### ADR-004 — Gold spans must not overlap or carry boundary whitespace
 - Enforced in `Document` validation so generator bugs fail loudly rather than silently corrupting training labels.
 

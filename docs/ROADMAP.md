@@ -50,5 +50,13 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
   - Prototype (200 docs, split_seed 7): valid assignment on attempt 4; test-ID families =
     appt_booking, dis_letter, lab_table, rx_label, protocol_note; all 9 types in every split.
   - v1 (4000/600/1000) will be generated and its manifest committed **after** 2.6 validation passes.
-- [ ] 2.6 Validator + statistics report + near-duplicate / leakage checks
-- [ ] Independent review → commit → push
+- [x] 2.6 Validator + statistics report + near-duplicate / leakage checks (`privymed-validate`)
+  - Full-size trial build: 0 errors. Validator exposed HOSPITAL memorisation (93.7% of test
+    strings seen in train) → per-split hospital cores + narrative pools → 0.6%. Entity-free share
+    equalised via `entity_free_ratio` (was 3.8/13.2/14.6%, now 6.7/4.7/5.8%).
+  - Documented limitations: per-type mix differs across splits (family composition; dev has ~200
+    IDs); 17–26% of eval PATIENT/STAFF whole strings and **71–80% of their tokens** also occur in
+    train (finite name pools; see ADR-007).
+- [x] Independent review: 0 critical, 5 important, 8 minor — all addressed (ADR-007), with
+  regression tests in `tests/test_review_m2.py` (incl. the reviewer's simulated family leak).
+- [ ] Freeze v1 from a clean tree → validate → commit manifest + report → push

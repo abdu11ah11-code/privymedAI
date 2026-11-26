@@ -55,9 +55,11 @@ PK_CITIES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("Abbottabad", "0992", ("Jinnahabad", "Mandian", "Kaghan Colony")),
 )  # fmt: skip
 
+# Must be disjoint from HOSPITAL_CORES (tested): a hospital core appearing inside a train
+# ADDRESS would leak an eval-split hospital string into train (review finding M2-7).
 PK_BUILDING_WORDS: tuple[str, ...] = (
-    "Al-Noor", "Rehmat", "Sitara", "Gulzar", "Hilal", "Falak", "Shadab", "Mehran", "Zarghoon",
-    "Margalla", "Kohinoor", "Sapphire",
+    "Gulzar", "Falak", "Shadab", "Kohinoor", "Shalimar", "Bahar", "Gulistan", "Faran",
+    "Anarkali", "Kausar", "Firdous", "Shabnam",
 )  # fmt: skip
 
 PK_MOBILE_PREFIXES: tuple[str, ...] = (
@@ -72,6 +74,9 @@ HOSPITAL_CORES: tuple[str, ...] = (
     "Northgate", "Sapphire", "Unity", "Hilal", "Sitara", "Riverside", "Cedar Hill", "Bright Path",
     "Zarghoon", "Margalla View", "Indus Valley", "Lakeside", "Noor-ul-Huda", "Gulnar Care",
     "Saint Brendan", "Westbrook", "Harbour", "Maple Grove", "Kohsar", "Mehran",
+    "Bluebell", "Ravi View", "Pine Ridge", "Tulip", "Starling", "Chenab", "Oakwood",
+    "Silver Crest", "Meadowbank", "Nishat Care", "Sunflower", "Summit", "Highgate",
+    "Jhelum Valley", "Willowdale", "Shifa-e-Noor", "Rosewood Park", "Kingsbridge",
 )  # fmt: skip
 
 HOSPITAL_SUFFIXES: tuple[str, ...] = (
@@ -240,6 +245,20 @@ NARRATIVE: tuple[str, ...] = (
     "Urine dipstick was negative for nitrites.",
     "Allergies: none known.",
     "Consent was obtained after explaining risks and benefits.",
+    # More name-word negatives so every split gets several (review finding M2-6).
+    "Grace period of one week was given before the repeat test.",
+    "Iris examination was unremarkable.",
+    "Amber-coloured urine was noted in the catheter bag.",
+    "Joy and interest in daily activities are reduced.",
+    "Hope for full recovery was discussed with the family.",
+    "Mark the operative site before transfer to theatre.",
+    "Bill for the procedure was forwarded to accounts.",
+    "Hunter's canal block was performed for analgesia.",
+    "King's College criteria were not met.",
+    "Faith-based dietary preferences were respected.",
+    "Brown discharge was reported on the dressing.",
+    "Hill walking is not advised for six weeks.",
+    "June review was moved to an earlier slot.",
 )  # fmt: skip
 
 MONTHS = (
