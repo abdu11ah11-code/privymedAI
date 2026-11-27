@@ -16,7 +16,7 @@
     "device": "cuda"
   },
   "git": {
-    "commit": "2982ec7",
+    "commit": "269c68c",
     "dirty": false
   },
   "packages": {
@@ -32,30 +32,30 @@
     "platform": "Windows-11-10.0.26300-SP0",
     "processor": "AMD64 Family 25 Model 68 Stepping 1, AuthenticAMD"
   },
-  "latency_mode": "batched",
+  "latency_mode": "whole_split_batched_mean",
   "latency_ms_per_doc": {
-    "mean": 17.935,
-    "p50": 17.665,
-    "p95": 24.08
+    "mean": 15.171,
+    "p50": 15.171,
+    "p95": 15.171
   },
   "throughput": {
-    "docs_per_s": 55.8,
-    "chars_per_s": 26217
+    "docs_per_s": 65.9,
+    "chars_per_s": 30996
   },
-  "first_call_ms": 9565.1,
+  "first_call_ms": 8237.1,
   "metrics": {
     "n_docs": 600,
     "leak_rate": 0.0001,
     "strict": {
       "micro": {
         "tp": 6812,
-        "fp": 93,
+        "fp": 95,
         "fn": 23,
-        "precision": 0.9865,
+        "precision": 0.9862,
         "recall": 0.9966,
-        "f1": 0.9916
+        "f1": 0.9914
       },
-      "macro_f1": 0.9934,
+      "macro_f1": 0.9932,
       "per_label": {
         "PATIENT": {
           "tp": 1259,
@@ -115,33 +115,33 @@
         },
         "ADDRESS": {
           "tp": 422,
-          "fp": 2,
+          "fp": 3,
           "fn": 0,
-          "precision": 0.9953,
+          "precision": 0.9929,
           "recall": 1.0,
-          "f1": 0.9976
+          "f1": 0.9965
         },
         "HOSPITAL": {
           "tp": 940,
-          "fp": 31,
+          "fp": 32,
           "fn": 8,
-          "precision": 0.9681,
+          "precision": 0.9671,
           "recall": 0.9916,
-          "f1": 0.9797
+          "f1": 0.9792
         }
       },
       "ci95": {
         "precision": [
-          0.9837,
-          0.9892
+          0.9834,
+          0.989
         ],
         "recall": [
           0.9951,
           0.9978
         ],
         "f1": [
-          0.9896,
-          0.9933
+          0.9895,
+          0.9932
         ],
         "leak_rate": [
           0.0,
@@ -152,13 +152,13 @@
     "boundary": {
       "micro": {
         "tp": 6832,
-        "fp": 73,
+        "fp": 75,
         "fn": 3,
-        "precision": 0.9894,
+        "precision": 0.9891,
         "recall": 0.9996,
-        "f1": 0.9945
+        "f1": 0.9943
       },
-      "macro_f1": 0.9957,
+      "macro_f1": 0.9955,
       "per_label": {
         "PATIENT": {
           "tp": 1259,
@@ -218,33 +218,33 @@
         },
         "ADDRESS": {
           "tp": 422,
-          "fp": 2,
+          "fp": 3,
           "fn": 0,
-          "precision": 0.9953,
+          "precision": 0.9929,
           "recall": 1.0,
-          "f1": 0.9976
+          "f1": 0.9965
         },
         "HOSPITAL": {
           "tp": 947,
-          "fp": 31,
+          "fp": 32,
           "fn": 1,
-          "precision": 0.9683,
+          "precision": 0.9673,
           "recall": 0.9989,
-          "f1": 0.9834
+          "f1": 0.9829
         }
       },
       "ci95": {
         "precision": [
-          0.9869,
-          0.9919
+          0.9866,
+          0.9917
         ],
         "recall": [
           0.999,
           1.0
         ],
         "f1": [
-          0.9931,
-          0.9958
+          0.993,
+          0.9956
         ],
         "leak_rate": [
           0.0,
@@ -255,13 +255,13 @@
     "partial": {
       "micro": {
         "tp": 6814,
-        "fp": 91,
+        "fp": 93,
         "fn": 21,
-        "precision": 0.9868,
+        "precision": 0.9865,
         "recall": 0.9969,
-        "f1": 0.9918
+        "f1": 0.9917
       },
-      "macro_f1": 0.9936,
+      "macro_f1": 0.9934,
       "per_label": {
         "PATIENT": {
           "tp": 1260,
@@ -321,33 +321,33 @@
         },
         "ADDRESS": {
           "tp": 422,
-          "fp": 2,
+          "fp": 3,
           "fn": 0,
-          "precision": 0.9953,
+          "precision": 0.9929,
           "recall": 1.0,
-          "f1": 0.9976
+          "f1": 0.9965
         },
         "HOSPITAL": {
           "tp": 941,
-          "fp": 30,
+          "fp": 31,
           "fn": 7,
-          "precision": 0.9691,
+          "precision": 0.9681,
           "recall": 0.9926,
-          "f1": 0.9807
+          "f1": 0.9802
         }
       },
       "ci95": {
         "precision": [
-          0.9841,
-          0.9894
+          0.9838,
+          0.9892
         ],
         "recall": [
           0.9955,
           0.9981
         ],
         "f1": [
-          0.99,
-          0.9935
+          0.9899,
+          0.9934
         ],
         "leak_rate": [
           0.0,
@@ -358,13 +358,13 @@
     "overlap": {
       "micro": {
         "tp": 6835,
-        "fp": 70,
+        "fp": 72,
         "fn": 0,
-        "precision": 0.9899,
+        "precision": 0.9896,
         "recall": 1.0,
-        "f1": 0.9949
+        "f1": 0.9948
       },
-      "macro_f1": 0.996,
+      "macro_f1": 0.9959,
       "per_label": {
         "PATIENT": {
           "tp": 1260,
@@ -424,33 +424,33 @@
         },
         "ADDRESS": {
           "tp": 422,
-          "fp": 2,
+          "fp": 3,
           "fn": 0,
-          "precision": 0.9953,
+          "precision": 0.9929,
           "recall": 1.0,
-          "f1": 0.9976
+          "f1": 0.9965
         },
         "HOSPITAL": {
           "tp": 948,
-          "fp": 30,
+          "fp": 31,
           "fn": 0,
-          "precision": 0.9693,
+          "precision": 0.9683,
           "recall": 1.0,
-          "f1": 0.9844
+          "f1": 0.9839
         }
       },
       "ci95": {
         "precision": [
-          0.9873,
-          0.9923
+          0.987,
+          0.992
         ],
         "recall": [
           1.0,
           1.0
         ],
         "f1": [
-          0.9936,
-          0.9961
+          0.9935,
+          0.996
         ],
         "leak_rate": [
           0.0,

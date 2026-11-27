@@ -112,11 +112,11 @@ Report: `reports/eval/transformer_v1_dev_roberta_s13.json`
 
 | Mode | Precision | Recall | F1 [95% CI] |
 |---|---:|---:|---|
-| strict | 0.987 | 0.997 | 0.992 [0.990, 0.993] |
-| boundary | 0.989 | 1.000 | 0.995 [0.993, 0.996] |
+| strict | 0.986 | 0.997 | 0.991 [0.990, 0.993] |
+| boundary | 0.989 | 1.000 | 0.994 [0.993, 0.996] |
 | overlap | 0.990 | 1.000 | 0.995 [0.994, 0.996] |
 
-Leak rate **0.010%**. Per-type strict F1: PATIENT 0.982 · STAFF 0.985 · DATE 0.999 · PHONE 1.000 · EMAIL 1.000 · CNIC 1.000 · ID 0.998 · ADDRESS 0.998 · HOSPITAL 0.980. Latency ~18 ms/doc mean (GPU, whole-split batched).
+Leak rate **0.010%** (commit `269c68c`, clean; strict F1 0.9914 = training record). Per-type strict F1: PATIENT 0.982 · STAFF 0.985 · DATE 0.999 · PHONE 1.000 · EMAIL 1.000 · CNIC 1.000 · ID 0.998 · ADDRESS 0.997 · HOSPITAL 0.979. Latency ~15 ms/doc mean (GPU, whole-split batched; single run).
 
 ### Reproducibility checks
 
