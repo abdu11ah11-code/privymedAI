@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
+from itertools import pairwise
 
 from privymed.schema import EntityType, Span
 
@@ -33,6 +34,9 @@ def spans_to_bio(tokens: Sequence[Token], spans: Sequence[Span]) -> list[str]:
     """Tag tokens with B-/I-/O. Raises :class:`AlignmentError` on mid-token boundaries."""
     tags = ["O"] * len(tokens)
     ordered = sorted(spans, key=lambda s: s.start)
+    for a, b in pairwise(ordered):
+        if a.overlaps(b):  # BIO cannot represent overlaps; never overwrite silently
+            raise AlignmentError(f"overlapping spans {a.start}:{a.end} and {b.start}:{b.end}")
     ti = 0
     for span in ordered:
         while ti < len(tokens) and tokens[ti][1] <= span.start:

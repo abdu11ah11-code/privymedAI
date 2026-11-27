@@ -3,19 +3,29 @@
 Configuration principle: adapt Presidio *to the target schema* (entity
 mapping, boundary conventions of the annotation guide, phone regions, score
 threshold) and add custom recognizers only for entity types Presidio has no
-concept of (Pakistani CNIC, medical record identifiers). Detection logic from
-the regex baseline is deliberately NOT copied in, so the comparison measures
-Presidio + spaCy NER, not "regex + spaCy".
+concept of (Pakistani CNIC, medical record identifiers).
+
+What is shared with the regex baseline (disclosed; Milestone 3 review M3-3):
+    * the ID keywords and the staff role cues (``detectors/cues.py``), and the
+      letter-prefix / ``#`` ID shapes. Presidio has no record-number entity and no
+      clinical-role concept, so its ID scores and its STAFF/PATIENT split are
+      effectively "Presidio + the shared cue rules";
+    * the boundary helper ``trim_boundaries``.
+    What is *not* shared: name, date, phone, hospital and address detection, which
+    come from Presidio's recognizers and spaCy NER only.
 
 Pipeline
     1. AnalyzerEngine (spaCy ``en_core_web_lg``) restricted to schema-relevant
        entities; US-specific and financial recognizers are not requested.
     2. PhoneRecognizer with regions PK, GB, US (default lacks PK).
-    3. Custom PatternRecognizers: ``PK_CNIC``, ``RECORD_ID`` (low base score,
-       boosted by Presidio's context enhancer when words like "MRN" are near).
+    3. Custom recognizers: ``PK_CNIC`` (PatternRecognizer, base 0.5, boosted to
+       0.85 by Presidio's context enhancer near "CNIC"), and ``RECORD_ID``
+       (EntityRecognizer: 0.6 after an ID keyword, 0.5 for prefix shapes; it has no
+       context words, so it is never boosted — at thresholds >= 0.7 all IDs drop).
     4. Map Presidio entities to the 9-type schema (see ``ENTITY_MAP``).
     5. Normalise boundaries to the annotation guide: strip leading role/title
-       words ("Patient", "Dr.") and trailing punctuation.
+       words ("Patient", "Dr.") from PERSON, then ``trim_boundaries`` (balanced
+       parentheses are kept, so "(042) 35761234" stays intact).
     6. Split PERSON into STAFF (doctor title or staff role cue just before the
        name) and PATIENT (everything else) — Presidio has a single PERSON type.
     7. Drop out-of-schema DATE_TIME hits (times of day; relative dates with no
@@ -28,10 +38,11 @@ Pipeline
 from __future__ import annotations
 
 import re
-from functools import cached_property
+import threading
 from typing import TYPE_CHECKING, Any
 
-from privymed.detectors.base import Detector
+from privymed.detectors.base import Detector, trim_boundaries
+from privymed.detectors.cues import ID_KEYWORDS, STAFF_CUES, alternation
 from privymed.schema import EntityType, Span
 
 if TYPE_CHECKING:
@@ -53,14 +64,9 @@ REQUESTED = tuple(ENTITY_MAP)
 _LEADING_TITLE = re.compile(
     r"^(?:(?:patient|pt|name|dr|prof|mr|mrs|ms|miss|sister|nurse)\b\.?\s*)+", re.IGNORECASE
 )
-_STAFF_CUE = re.compile(
-    r"(?:\b(?:dr|prof)\.?|\b(?:seen by|signed|verified by|reported by|consultant|clinician|"
-    r"prescriber|referring (?:doctor|physician)|admitting doctor|dict\.))\s*:?\s*$",
-    re.IGNORECASE,
-)
+_STAFF_CUE = re.compile(rf"(?:\b(?:dr|prof)\.?|\b{alternation(STAFF_CUES)})\s*:?\s*$", re.I)
 _MONTH = re.compile(r"(?i)\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b")
 _TIME_ONLY = re.compile(r"(?i)^\d{1,2}[:.]\d{2}(?:\s?[ap]\.?m\.?)?$")
-_TRAILING = ".,;:)("
 # Recognizers validated by structure beat NER on overlap (spaCy tags phone numbers and
 # record ids as DATE with 0.85; smoke test on a synthetic sentence).
 # Overlap priority (higher wins): validated patterns, most specific first, then NER types.
@@ -113,8 +119,7 @@ def _build_analyzer() -> AnalyzerEngine:
 # whose shape alone marks them as ids (letter prefix + digits, or '#'+digits). A generic
 # "any digit group" pattern matched phone numbers and dates (smoke test), so it is not used.
 _ID_KEYED = re.compile(
-    r"(?i:\b(?:mrn|mr\s?#|mr\s?no\.?|patient\s+id|id|lab\s+no|accession|admission\s+no|rx\s+no|"
-    r"specimen\s+id|claim\s+ref|booking\s+reference|reg(?:istration)?\s+no)\b\.?[ \t]*[:=#]?[ \t]*)"
+    rf"(?i:(?<![\w#]){alternation(ID_KEYWORDS)}(?!\w)\.?[ \t]*[:=#]?[ \t]*)"
     r"(?P<v>#?[A-Z0-9][A-Z0-9/#\-]{3,}(?<=\d))"
 )
 _ID_SHAPED = re.compile(r"(?<![\w#])(?:#\d{5,}|[A-Z]{2,4}[-/]?\d{2,}(?:[-/]\d{2,})*)\b")
@@ -148,12 +153,20 @@ class PresidioDetector(Detector):
 
     name = "presidio"
 
-    def __init__(self, score_threshold: float = 0.4) -> None:
+    # 0.3 = best strict F1 in the dev-only sweep (E-002; tie with 0.4 -> lower threshold).
+    def __init__(self, score_threshold: float = 0.3) -> None:
         self.score_threshold = score_threshold
+        self._analyzer: AnalyzerEngine | None = None
+        self._lock = threading.Lock()
 
-    @cached_property
+    @property
     def analyzer(self) -> AnalyzerEngine:
-        return _build_analyzer()
+        """Built once on first use; locked so concurrent first calls build it only once."""
+        if self._analyzer is None:
+            with self._lock:
+                if self._analyzer is None:
+                    self._analyzer = _build_analyzer()
+        return self._analyzer
 
     def config(self) -> dict[str, Any]:
         return {
@@ -191,10 +204,7 @@ class PresidioDetector(Detector):
             m = _LEADING_TITLE.match(text[start:end])
             if m:
                 start += m.end()
-        while end > start and (text[end - 1].isspace() or text[end - 1] in _TRAILING):
-            end -= 1
-        while start < end and (text[start].isspace() or text[start] in _TRAILING):
-            start += 1
+        start, end = trim_boundaries(text, start, end)
         if end <= start:
             return None
         surface = text[start:end]

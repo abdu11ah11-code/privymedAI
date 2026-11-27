@@ -33,7 +33,7 @@ def small_root(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 
 def test_test_split_is_refused_without_final(small_root: Path) -> None:
-    with pytest.raises(PermissionError, match="frozen test split"):
+    with pytest.raises(PermissionError, match="not a development split"):
         evaluate_system("regex", "test_id", small_root / "data/manifests/t.json", small_root)
 
 
@@ -71,3 +71,33 @@ def test_run_detector_times_every_document() -> None:
     preds, latency = run_detector(_Nothing(), docs, warmup=1)
     assert set(preds) == {"0", "1", "2", "3"} and latency.shape == (4,)
     assert (latency >= 0).all()
+
+
+def test_aliased_test_split_is_refused(small_root: Path, tmp_path: Path) -> None:
+    """Review M3-5: a manifest that renames the test file to 'holdout' (or 'dev') must fail."""
+    import json
+    import shutil
+
+    copy = tmp_path / "alias"
+    shutil.copytree(small_root, copy)
+    canonical = json.loads((copy / "data/manifests/t.json").read_text(encoding="utf-8"))
+    for alias in ("holdout", "dev"):
+        evil = {**canonical, "files": {**canonical["files"], alias: canonical["files"]["test_id"]}}
+        path = copy / "evil.json"
+        path.write_text(json.dumps(evil), encoding="utf-8")
+        with pytest.raises(PermissionError):
+            evaluate_system("regex", alias, path, copy)
+
+
+def test_sweep_refuses_test_split(small_root: Path) -> None:
+    from privymed.evaluation.runner import sweep
+
+    with pytest.raises(PermissionError):
+        sweep("regex", "x", [1.0], small_root / "data/manifests/t.json", small_root, "test_id")
+
+
+def test_report_records_git_state_and_packages(small_root: Path) -> None:
+    report = evaluate_system("regex", "dev", small_root / "data/manifests/t.json", small_root)
+    git, packages = report["git"], report["packages"]
+    assert isinstance(git, dict) and set(git) == {"commit", "dirty"}
+    assert isinstance(packages, dict) and "numpy" in packages

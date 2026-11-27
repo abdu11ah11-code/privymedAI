@@ -48,6 +48,13 @@ def test_configured_presidio_gets_smoke_sentence_right(
     assert (surface, label) in found
 
 
+def test_parenthesised_phone_keeps_opening_bracket(det: PresidioDetector) -> None:
+    # Review M3-2: "(" used to be stripped, turning every such phone into FP + FN.
+    text = "Tel: (042) 35761234 for queries."
+    phones = [text[s.start : s.end] for s in det.detect(text) if s.label is E.PHONE]
+    assert phones == ["(042) 35761234"]
+
+
 def test_out_of_schema_hits_are_dropped(found: set[tuple[str, EntityType]]) -> None:
     surfaces = {s for s, _ in found}
     assert "10:30 AM" not in surfaces  # time of day

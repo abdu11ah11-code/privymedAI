@@ -64,3 +64,10 @@ def test_label_change_inside_run_splits_spans() -> None:
 def test_invalid_tag_raises() -> None:
     with pytest.raises(ValueError):
         bio_to_spans(tokenize("a"), ["X-DATE"])
+
+
+def test_overlapping_spans_are_refused() -> None:
+    with pytest.raises(AlignmentError, match="overlapping"):
+        spans_to_bio(
+            tokenize("Ali Khan"), [_s(0, 8, EntityType.PATIENT), _s(4, 8, EntityType.STAFF)]
+        )

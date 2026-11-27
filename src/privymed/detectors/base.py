@@ -14,6 +14,38 @@ from typing import Any, ClassVar
 
 from privymed.schema import GOLD_SOURCE, Span, span_sort_key, validate_spans_against_text
 
+_EDGE_PUNCT = ".,;:"
+
+
+def trim_boundaries(text: str, start: int, end: int) -> tuple[int, int]:
+    """Normalise a candidate span's edges to the annotation guide.
+
+    Strips whitespace and ``.,;:`` at both ends. Parentheses are stripped only when
+    unbalanced, so ``(042) 35761234`` keeps its "(" (guide: PHONE includes parentheses)
+    while ``Khan)`` loses its ")". Shared by all rule-based detectors so their boundary
+    conventions cannot drift apart (Milestone 3 review finding M3-2).
+    """
+    changed = True
+    while changed and end > start:
+        changed = False
+        span = text[start:end]
+        last, first = span[-1], span[0]
+        if (
+            last.isspace()
+            or last in _EDGE_PUNCT
+            or (last == ")" and span.count("(") < span.count(")"))
+        ):
+            end -= 1
+            changed = True
+        elif (
+            first.isspace()
+            or first in _EDGE_PUNCT
+            or (first == "(" and span.count(")") < span.count("("))
+        ):
+            start += 1
+            changed = True
+    return start, end
+
 
 class Detector(ABC):
     """Base class for all PII detectors.

@@ -1,9 +1,10 @@
 """Deterministic regex / rule-based PII detector (Milestone 3 baseline).
 
 Rules were written from docs/ANNOTATION_GUIDE.md and observations of train/dev
-documents only (CLAUDE.md rule 3). Each rule yields candidate spans; overlaps
-are resolved by type priority (structured, high-precision types first), then by
-longer span.
+documents only (CLAUDE.md rule 3). Context cues live in ``detectors/cues.py`` and are
+lint-tested to occur in train/dev (review finding M3-1 removed 9 cues that did not).
+Each rule yields candidate spans; overlaps are resolved by type priority (structured,
+high-precision types first), then by longer span.
 
 Known by-design weaknesses: names without a context cue, hospital acronyms,
 addresses without an anchor word, and anything relying on meaning rather than
@@ -16,7 +17,14 @@ import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 
-from privymed.detectors.base import Detector
+from privymed.detectors.base import Detector, trim_boundaries
+from privymed.detectors.cues import (
+    ID_KEYWORDS,
+    PATIENT_FIELD_CUES,
+    PATIENT_INLINE_CUES,
+    STAFF_CUES,
+    alternation,
+)
 from privymed.schema import EntityType, Span
 
 # ----------------------------------------------------------------------------- vocab
@@ -83,8 +91,7 @@ RULES: tuple[Rule, ...] = (
     # --- ID: context ("MRN: 12345", "Lab No: 1234-5678-12", "Accession: X")
     _r(
         E.ID,
-        r"(?i:\b(?:MRN|MR#|MR\s?No\.?|Patient\s+ID|ID|Lab\s+No|Accession|Admission\s+No|Rx\s+No|"
-        r"Specimen\s+ID|Claim\s+ref|Booking\s+reference|Reg(?:istration)?\s+No)\b\.?\s*[:=#]?\s*)"
+        rf"(?i:(?<![\w#]){alternation(ID_KEYWORDS)}(?!\w)\.?\s*[:=#]?\s*)"
         r"(?P<v>[A-Z0-9][A-Z0-9/#\-]{3,}\d)",
         "v",
     ),
@@ -109,8 +116,7 @@ RULES: tuple[Rule, ...] = (
     _r(E.STAFF, rf"\b(?:Dr|Prof)\.?[ \t]+(?P<v>{_NAME})", "v"),
     _r(
         E.STAFF,
-        rf"(?:Seen by|Signed|Verified by|Reported by|Referring (?:doctor|physician)|Consultant|"
-        rf"Prescriber|Admitting Doctor|Clinician|Processed by|Registered by|Dict\.)[ \t]*:?[ \t]+"
+        rf"{alternation(STAFF_CUES)}[ \t]*:?[ \t]+"
         rf"(?:(?:Dr|Prof|Mr|Mrs|Ms)\.?[ \t]+)?(?P<v>{_NAME})",  # iter 2: "Clinician: Ms. X"
         "v",
     ),
@@ -118,11 +124,10 @@ RULES: tuple[Rule, ...] = (
     # Form fields need a ':' / '=' (dev iteration 1: "NOK Contact:" captured "Contact").
     _r(
         E.PATIENT,
-        rf"(?:Patient(?:[ \t]+[Nn]ame)?|Full[ \t]+Name|Name|Policy holder|Insured member|"
-        rf"Next of Kin|NOK|Guardian/NOK)[ \t]*[:=][ \t]*(?P<v>{_NAME})",
+        rf"(?i:{alternation(PATIENT_FIELD_CUES)})[ \t]*[:=][ \t]*(?P<v>{_NAME})",
         "v",
     ),
-    _r(E.PATIENT, rf"\b(?:Pt|Re|Appt for|Booked for)[ \t]*:?[ \t]+(?P<v>{_NAME})", "v"),
+    _r(E.PATIENT, rf"\b{alternation(PATIENT_INLINE_CUES)}[ \t]*:?[ \t]+(?P<v>{_NAME})", "v"),
     _r(E.PATIENT, rf"\b(?:Mr|Mrs|Ms)\.?[ \t]+(?P<v>{_NAME})", "v"),
     _r(E.PATIENT, rf"(?i:\b(?:NAME|PATIENT(?:[ \t]+NAME)?)[ \t]*[:=][ \t]*)(?P<v>{_NAME_CI})", "v"),
 )
@@ -133,16 +138,7 @@ PRIORITY: dict[EntityType, int] = {
     E.HOSPITAL: 4, E.ADDRESS: 3, E.STAFF: 2, E.PATIENT: 1,
 }  # fmt: skip
 
-_TRAILING = ".,;:)"
-
-
-def _trim(text: str, start: int, end: int) -> tuple[int, int]:
-    """Strip whitespace and trailing punctuation that rules may over-capture."""
-    while end > start and (text[end - 1].isspace() or text[end - 1] in _TRAILING):
-        end -= 1
-    while start < end and text[start].isspace():
-        start += 1
-    return start, end
+_trim = trim_boundaries  # shared with Presidio (review finding M3-2)
 
 
 class RegexDetector(Detector):

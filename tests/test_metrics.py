@@ -13,7 +13,7 @@ from privymed.data_generation.engine import generate_document
 from privymed.data_generation.entities import EntityFactory
 from privymed.data_generation.families import FAMILIES
 from privymed.data_generation.noise import CLEAN
-from privymed.evaluation import evaluate, match_document
+from privymed.evaluation import Mode, evaluate, match_document
 from privymed.evaluation.metrics import leak_chars
 from privymed.schema import Document, EntityType, Span
 
@@ -80,6 +80,58 @@ def test_one_prediction_cannot_match_two_gold_spans() -> None:
     counts, pairs = match_document(gold, [s(0, 10, P)], "overlap")
     assert pairs == [(0, 0)]  # matched to the larger overlap (5 chars vs 4)
     assert (counts[P].tp, counts[P].fn, counts[P].fp) == (1, 1, 0)
+
+
+def test_matching_is_maximum_cardinality_reviewer_counterexample() -> None:
+    """Review M3-4: greedy-by-overlap gave 1 TP here; the optimal matching gives 2."""
+    gold = [s(0, 10, P, "gold"), s(10, 20, P, "gold")]
+    preds = [s(2, 18, P), s(0, 3, P)]
+    modes: tuple[Mode, ...] = ("partial", "overlap")
+    for mode in modes:
+        counts, pairs = match_document(gold, preds, mode)
+        assert (counts[P].tp, counts[P].fp, counts[P].fn) == (2, 0, 0), mode
+        assert len(pairs) == 2
+
+
+def _brute_force_max_tp(gold: list[Span], preds: list[Span], mode: Mode) -> int:
+    from itertools import permutations
+
+    from privymed.evaluation.metrics import _dedupe, _is_candidate
+
+    preds = _dedupe(preds)
+    best = 0
+    # try every injective assignment of preds (plus "unmatched") to gold
+    slots = list(range(len(preds))) + [-1] * len(gold)
+    for perm in set(permutations(slots, len(gold))):
+        used = [p for p in perm if p >= 0]
+        if len(used) != len(set(used)):
+            continue
+        tp = sum(
+            1
+            for g, p in zip(gold, perm, strict=True)
+            if p >= 0 and _is_candidate(mode, g, preds[p])
+        )
+        best = max(best, tp)
+    return best
+
+
+@pytest.mark.parametrize("mode", ["strict", "boundary", "partial", "overlap"])
+def test_matching_tp_equals_brute_force_optimum(mode: Mode) -> None:
+    rng = random.Random(7)
+    labels = [P, D]
+    for _ in range(300):
+        gold, pos = [], 0
+        for _ in range(rng.randint(0, 3)):  # non-overlapping gold
+            a = pos + rng.randint(0, 3)
+            b = a + rng.randint(1, 6)
+            gold.append(s(a, b, rng.choice(labels), "gold"))
+            pos = b
+        preds = []
+        for _ in range(rng.randint(0, 4)):  # predictions may overlap anything
+            a = rng.randint(0, max(1, pos))
+            preds.append(s(a, a + rng.randint(1, 8), rng.choice(labels)))
+        counts, _ = match_document(gold, preds, mode)
+        assert sum(c.tp for c in counts.values()) == _brute_force_max_tp(gold, preds, mode)
 
 
 def test_two_predictions_cannot_both_match_one_gold_span() -> None:

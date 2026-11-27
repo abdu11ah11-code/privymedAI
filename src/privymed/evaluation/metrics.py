@@ -11,8 +11,8 @@ Matching modes
 
 Rules common to all modes
     * Matching is one-to-one: a prediction matches at most one gold span and
-      vice versa. Candidates are paired greedily by largest character overlap
-      (ties: earliest gold, then earliest prediction), which is deterministic.
+      vice versa. The matching maximises the number of matched pairs, then the
+      total character overlap (Hungarian algorithm; deterministic).
     * Duplicate predictions (same start, end, label) are collapsed first;
       they are neither rewarded nor double-penalised.
     * Unmatched predictions are false positives, attributed to the predicted
@@ -31,6 +31,7 @@ Confidence intervals
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
@@ -102,6 +103,34 @@ def _is_candidate(mode: Mode, g: Span, p: Span) -> bool:
             return _overlap(g, p) > 0
 
 
+def _max_matching(
+    candidates: Sequence[tuple[int, int, int]], n_gold: int, n_pred: int
+) -> list[tuple[int, int]]:
+    """Maximum-cardinality one-to-one matching; among those, maximum total overlap.
+
+    Greedy "largest overlap first" is not maximum-cardinality when predictions
+    overlap several gold spans (review finding M3-4: gold [0,10) [10,20), predictions
+    [2,18) [0,3) -> greedy 1 TP, optimal 2 TP). Solved exactly with the Hungarian
+    algorithm; weight = BIG + overlap so cardinality dominates, overlap breaks ties.
+    The result is deterministic for a given input.
+    """
+    if not candidates:
+        return []
+    gold_degree = Counter(gi for _, gi, _ in candidates)
+    pred_degree = Counter(pi for _, _, pi in candidates)
+    if max(gold_degree.values()) == 1 and max(pred_degree.values()) == 1:
+        # Every candidate pair is conflict-free (always true in strict/boundary mode).
+        return sorted((gi, pi) for _, gi, pi in candidates)
+    from scipy.optimize import linear_sum_assignment
+
+    big = 1 + sum(ov for ov, _, _ in candidates)
+    weight = np.zeros((n_gold, n_pred))
+    for ov, gi, pi in candidates:
+        weight[gi, pi] = big + ov
+    rows, cols = linear_sum_assignment(weight, maximize=True)
+    return sorted((int(r), int(c)) for r, c in zip(rows, cols, strict=True) if weight[r, c] > 0)
+
+
 def match_document(
     gold: Sequence[Span], preds: Sequence[Span], mode: Mode
 ) -> tuple[dict[EntityType, Counts], list[tuple[int, int]]]:
@@ -114,15 +143,9 @@ def match_document(
         for pi, p in enumerate(preds)
         if _is_candidate(mode, g, p)
     ]
-    candidates.sort(key=lambda c: (-c[0], c[1], c[2]))
-    used_g: set[int] = set()
-    used_p: set[int] = set()
-    pairs: list[tuple[int, int]] = []
-    for _, gi, pi in candidates:
-        if gi not in used_g and pi not in used_p:
-            used_g.add(gi)
-            used_p.add(pi)
-            pairs.append((gi, pi))
+    pairs = _max_matching(candidates, len(gold), len(preds))
+    used_g = {gi for gi, _ in pairs}
+    used_p = {pi for _, pi in pairs}
     counts = {label: Counts() for label in _LABELS}
     for gi, _ in pairs:
         counts[gold[gi].label].tp += 1

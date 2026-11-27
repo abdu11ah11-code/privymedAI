@@ -61,6 +61,30 @@ def test_hard_negatives_produce_nothing(text: str) -> None:
     assert found(text) == []
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Lab No: 1234-5678-12",  # leaked cue (test-only template) must not create an ID
+        "Rx No. 4417-8823-91",
+    ],
+)
+def test_leaked_test_cues_do_not_fire(text: str) -> None:
+    assert all(label is not E.ID for _, label in found(text))
+
+
+def test_prescriber_cue_no_longer_marks_staff() -> None:
+    assert ("Ali Khan", E.STAFF) not in found("Prescriber: Ali Khan")
+
+
+def test_balanced_parentheses_kept_unbalanced_stripped() -> None:
+    from privymed.detectors.base import trim_boundaries
+
+    text = "(042) 35761234"
+    assert trim_boundaries(text, 0, len(text)) == (0, len(text))
+    text = "Khan)."
+    assert text[slice(*trim_boundaries(text, 0, len(text)))] == "Khan"
+
+
 def test_names_do_not_cross_lines_or_space_runs() -> None:
     # Dev iterations 1 and 2: these used to swallow the next field label.
     assert ("Tahir Durrani", E.PATIENT) in found("Full Name: Tahir Durrani\nCNIC: 1")

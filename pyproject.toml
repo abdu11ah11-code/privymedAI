@@ -12,6 +12,7 @@ dependencies = [
     "numpy>=2.5.5",
     "pydantic>=2.7",
     "pyyaml>=6.0",
+    "scipy>=1.18.1",
 ]
 
 [project.scripts]
@@ -36,6 +37,10 @@ dev = [
     "types-PyYAML",
     "seqeval>=1.2.2",
 ]
+
+[tool.uv]
+# Plain `uv sync` installs everything needed to run the baselines and their tests.
+default-groups = ["dev", "baselines"]
 
 [build-system]
 requires = ["hatchling"]
@@ -65,7 +70,7 @@ files = ["src", "tests"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["datasketch", "datasketch.*", "seqeval", "seqeval.*"]
+module = ["datasketch", "datasketch.*", "seqeval", "seqeval.*", "scipy", "scipy.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

@@ -29,7 +29,8 @@ from privymed.logging_utils import get_logger, setup_logging
 from privymed.schema import Document, Span
 
 log = get_logger(__name__)
-TEST_SPLITS = frozenset({"test_id", "test_ood"})
+DEV_SPLITS = frozenset({"train", "dev"})  # allowlist: anything else needs --final
+MANIFEST_DIR = "data/manifests"  # every frozen manifest here has its test files guarded
 
 
 Params = dict[str, float]
@@ -65,17 +66,59 @@ def _parse_params(items: Sequence[str]) -> Params:
     return out
 
 
-def _git_commit(root: Path) -> str:
+def _git_state(root: Path) -> dict[str, object]:
+    """HEAD commit and whether src/configs had uncommitted changes (review finding M3-6)."""
     try:
-        return subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
+
+        def git(*args: str) -> str:
+            return subprocess.run(
+                ["git", *args], cwd=root, capture_output=True, text=True, check=True
+            ).stdout.strip()
+
+        commit = git("rev-parse", "--short", "HEAD")
+        dirty = bool(git("status", "--porcelain", "--", "src", "configs", "pyproject.toml"))
     except (OSError, subprocess.CalledProcessError):
-        return "unknown"
+        return {"commit": "unknown", "dirty": True}
+    return {"commit": commit, "dirty": dirty}
+
+
+def _package_versions() -> dict[str, str]:
+    from importlib.metadata import PackageNotFoundError, version
+
+    out = {}
+    for pkg in ("privymed", "numpy", "scipy", "presidio-analyzer", "spacy", "en-core-web-lg"):
+        try:
+            out[pkg] = version(pkg)
+        except PackageNotFoundError:
+            continue
+    return out
+
+
+def _protected_test_hashes(root: Path) -> set[str]:
+    """SHA-256 of every non-train/dev file listed in any manifest under data/manifests/."""
+    hashes: set[str] = set()
+    for path in sorted((root / MANIFEST_DIR).glob("*.json")):
+        files = json.loads(path.read_text(encoding="utf-8")).get("files", {})
+        hashes |= {info["sha256"] for name, info in files.items() if name not in DEV_SPLITS}
+    return hashes
+
+
+def _guard_split(split: str, file_info: dict[str, str], root: Path, final: bool) -> None:
+    """Refuse test data outside the Milestone 8 final evaluation.
+
+    Allowlist by name (only train/dev), and by content: a file whose hash equals a
+    frozen test file is refused under any split name (review M3-5: a manifest aliasing
+    test_id as "holdout" passed the old name-only blacklist).
+    """
+    if final:
+        return
+    if split not in DEV_SPLITS:
+        raise PermissionError(
+            f"split {split!r} is not a development split: only the Milestone 8 final "
+            "evaluation may use it (pass --final). Develop and tune on 'dev'."
+        )
+    if file_info["sha256"] in _protected_test_hashes(root):
+        raise PermissionError(f"split {split!r} contains a frozen test file (hash match)")
 
 
 def run_detector(
@@ -102,15 +145,13 @@ def evaluate_system(
     params: Params | None = None,
 ) -> dict[str, object]:
     params = params or {}
-    if split in TEST_SPLITS and not final:
-        raise PermissionError(
-            f"{split!r} is a frozen test split: only the Milestone 8 final evaluation may use it "
-            "(pass --final). Develop and tune on 'dev'."
-        )
+    if split not in DEV_SPLITS and not final:  # fail fast, before reading anything
+        _guard_split(split, {"sha256": ""}, root, final)
     verify_manifest(manifest_path, root=root)  # data must match the frozen manifest
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if split not in manifest["files"]:
         raise KeyError(f"split {split!r} not in manifest")
+    _guard_split(split, manifest["files"][split], root, final)
     docs = read_documents(root / manifest["files"][split]["path"])
 
     detector = SYSTEMS[system](**params)
@@ -129,7 +170,8 @@ def evaluate_system(
         "split": split,
         "params": params,
         "detector_config": detector.config() if hasattr(detector, "config") else {},
-        "git_commit": _git_commit(root),
+        "git": _git_state(root),
+        "packages": _package_versions(),
         "environment": {
             "python": platform.python_version(),
             "platform": platform.platform(),
@@ -161,7 +203,7 @@ def sweep(
 
     Test splits are always refused: tuning on test is never legitimate.
     """
-    if split in TEST_SPLITS:
+    if split not in DEV_SPLITS:
         raise PermissionError("parameter sweeps may only use development splits")
     rows = []
     for value in values:
@@ -177,7 +219,18 @@ def sweep(
             }
         )
     best = max(rows, key=lambda r: (r["strict"]["f1"], -r[key]))  # tie -> lower threshold
-    return {"system": system, "split": split, "param": key, "rows": rows, "best": best}
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    return {
+        "system": system,
+        "dataset_version": manifest["version"],
+        "split": split,
+        "param": key,
+        "rows": rows,
+        "best": best,
+        "git": _git_state(root),
+        "packages": _package_versions(),
+        "environment": {"python": platform.python_version(), "platform": platform.platform()},
+    }
 
 
 def _print_summary(report: dict[str, object]) -> None:
@@ -225,17 +278,20 @@ def main(argv: Sequence[str] | None = None) -> None:
                 f"  {key}={row[key]:<5} strict P={s['precision']:.3f} R={s['recall']:.3f} "
                 f"F1={s['f1']:.3f}  leak={row['leak_rate']:.3%}"
             )
-        print(f"  best: {key}={result['best'][key]}  report: {out.relative_to(root).as_posix()}")  # type: ignore[index]
+        print(f"  best: {key}={result['best'][key]}  report: {out.as_posix()}")  # type: ignore[index]
         return
     params = _parse_params(args.param)
     report = evaluate_system(
         args.system, args.split, root / args.manifest, root, args.final, params
     )
-    out = root / args.report_dir / f"{args.system}_{report['dataset_version']}_{args.split}.json"
+    # Non-default params get their own file, so they never overwrite the canonical report.
+    suffix = "".join(f"_{k}{v:g}" for k, v in sorted(params.items()))
+    name = f"{args.system}_{report['dataset_version']}_{args.split}{suffix}.json"
+    out = (root / args.report_dir / name).resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8", newline="\n")
     _print_summary(report)
-    print(f"  report: {out.relative_to(root).as_posix()}")
+    print(f"  report: {out.as_posix()}")
 
 
 if __name__ == "__main__":
