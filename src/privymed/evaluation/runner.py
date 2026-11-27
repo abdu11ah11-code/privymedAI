@@ -58,10 +58,20 @@ def _transformer(**params: float | str) -> Detector:
 
 
 # System name -> factory(**params). Imports are lazy so heavy systems load only when asked for.
+def _llm(**params: float | str) -> Detector:
+    from privymed.detectors.llm import DEFAULT_MODEL, LLMDetector
+
+    return LLMDetector(
+        model=str(params.get("model", DEFAULT_MODEL)),
+        n_examples=int(params.get("n_examples", 3)),
+    )
+
+
 SYSTEMS: dict[str, Callable[..., Detector]] = {
     "regex": _regex,
     "presidio": _presidio,
     "transformer": _transformer,
+    "llm": _llm,
 }
 
 
