@@ -163,6 +163,9 @@ def run_detector(
     """
     for doc in docs[:warmup]:  # warm caches / lazy model loading outside the timed loop
         detector.detect(doc.text)
+    reset = getattr(detector, "reset_stats", None)
+    if callable(reset):  # statistics must cover the evaluated documents only (606 -> 600)
+        reset()
     preds: dict[str, list[Span]] = {}
     latency = np.zeros(len(docs))
     if getattr(detector, "prefers_batch", False):

@@ -56,6 +56,11 @@ class LLMDetector(Detector):
         self.stats = MappingStats()
         self._lock = threading.Lock()
 
+    def reset_stats(self) -> None:
+        """Called by the evaluation runner after warm-up calls."""
+        with self._lock:
+            self.stats = MappingStats()
+
     def _chat(self, text: str) -> str:
         payload = {
             "model": self.model,

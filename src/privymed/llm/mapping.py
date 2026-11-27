@@ -11,12 +11,14 @@ An instruction-following LLM answers with *strings* (``{"text": "Ayesha Khan",
 * An unknown entity type is **invalid** (counted, dropped).
 * The same string returned with two different types: the first type wins (counted).
 * Overlapping candidate spans: the longer span wins (then the earlier one).
-* Boundaries are normalised with the shared ``trim_boundaries`` helper.
+* Boundaries are normalised with the shared ``trim_boundaries`` helper, and leading
+  titles (Dr., Prof., Mr., Mrs., Ms.) are stripped from PATIENT/STAFF spans (guide rule).
 """
 
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -24,6 +26,7 @@ from privymed.detectors.base import trim_boundaries
 from privymed.schema import EntityType, Span
 
 _TYPES = {t.value for t in EntityType}
+_LEADING_TITLE = re.compile(r"(?:(?:dr|prof|mr|mrs|ms|miss)\b\.?\s+)+", re.IGNORECASE)
 
 
 @dataclass
@@ -108,6 +111,12 @@ def map_mentions(
         first_type[needle] = m.label
         for s in starts:
             a, b = trim_boundaries(text, s, s + len(needle))
+            if m.label in ("PATIENT", "STAFF"):
+                # Guide: titles are not part of a name. Qwen kept "Dr." in 40 of 63 dev STAFF
+                # mentions despite the instruction; same normalisation as the Presidio baseline.
+                title = _LEADING_TITLE.match(text, a, b)
+                if title:
+                    a = title.end()
             if b > a:
                 candidates.append(Span(start=a, end=b, label=EntityType(m.label), source=source))
     candidates.sort(key=lambda s: (-(s.end - s.start), s.start))

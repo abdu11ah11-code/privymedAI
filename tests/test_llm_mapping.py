@@ -76,3 +76,25 @@ def test_stats_add() -> None:
     a = MappingStats(documents=1, mentions=2, hallucinated=1)
     b = MappingStats(documents=1, parse_failures=1)
     assert (a + b) == MappingStats(documents=2, mentions=2, hallucinated=1, parse_failures=1)
+
+
+@pytest.mark.parametrize(
+    ("mention", "label", "expected"),
+    [
+        ("Dr. Kimberly Lloyd", "STAFF", ("Kimberly Lloyd", ST)),
+        ("Mrs. Ayesha Khan", "PATIENT", ("Ayesha Khan", P)),
+        ("Prof. Dr. Malik", "STAFF", ("Malik", ST)),
+    ],
+)
+def test_leading_titles_stripped_from_names(
+    mention: str, label: str, expected: tuple[str, EntityType]
+) -> None:
+    text = f"Seen by {mention} today."
+    spans, _ = found(text, [Mention(mention, label)])
+    assert spans == [expected]
+
+
+def test_titles_not_stripped_from_other_types() -> None:
+    text = "Ref: Dr. Ali Clinic"
+    spans, _ = found(text, [Mention("Dr. Ali Clinic", "HOSPITAL")])
+    assert spans == [("Dr. Ali Clinic", EntityType.HOSPITAL)]
