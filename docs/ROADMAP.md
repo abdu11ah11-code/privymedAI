@@ -10,7 +10,7 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
 | 2b | OOD test set | NOT STARTED | 150–300 LLM-written notes, every annotation manually verified |
 | 3 | Baselines + span evaluator | DONE | Regex + Presidio implement `Detector`; evaluator matches hand-computed cases; seqeval cross-check |
 | 4 | Transformer training | DONE | 3 candidates × 3 seeds on dev; checkpoint reload reproduces dev score; experiments logged |
-| 5 | Qwen LLM baseline | NOT STARTED | Prompt + schema documented; parse/hallucination failures counted; same docs and evaluator |
+| 5 | Qwen LLM baseline | IN PROGRESS (review pending) | Prompt + schema documented; parse/hallucination failures counted; same docs and evaluator |
 | 6 | Error analysis → hybrid | NOT STARTED | Error taxonomy on dev; each fusion rule justified by a dev finding; ablations |
 | 7 | Redaction engine | NOT STARTED | Mask / label / surrogate modes; non-PII text preserved byte-for-byte (property tests) |
 | 8 | Frozen final test evaluation | NOT STARTED | One-shot run, test hash logged, bootstrap CIs, all systems same data |
@@ -77,3 +77,11 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
 - [x] 4.4 Training pipeline (bf16, fp32 master weights, dev span-F1 selection, run records) and windowed inference
 - [x] 4.5 Grid 3 models x 3 seeds -> RoBERTa primary (dev strict F1 0.9852 +/- 0.0036, `roberta_s7`), DeBERTa pre-registered accuracy variant (0.9931 +/- 0.0069, `deberta_s42`); configs/selected_models.yaml
 - [x] Independent review: 0 critical, 3 important (RoBERTa merged-prefix labels, bf16 order dependence, epoch-cap / over-fitting claim), 9 minor - all fixed; RoBERTa retrained, all 9 checkpoints re-scored with fp32 inference
+
+## Milestone 5 tasks
+
+- [x] 5.1 Ollama 0.40.18 + qwen3.5:4b (Q4_K_M, digest d8b0f5e9760c), 100% GPU
+- [x] 5.2 Prompt from the annotation guide, JSON-schema output, 3 deterministic train-only examples
+- [x] 5.3 String-to-offset mapping with parse-failure / hallucination / invalid-type accounting
+- [x] 5.4 LLMDetector + dev evaluation (E-006): strict F1 0.956, leak 1.71%, 0 parse failures, 19/6,669 hallucinated mentions
+- [ ] Independent review -> fixes -> commit -> push

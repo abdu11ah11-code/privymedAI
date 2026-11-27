@@ -4,6 +4,10 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Added — Milestone 5
+- Local LLM baseline: `llm/mapping.py` (string-to-offset mapping and output accounting), `llm/prompt.py` (guide-based instructions, JSON schema, train-only deterministic few-shot examples), `LLMDetector` (Ollama, localhost only), registered in `privymed-eval`. Experiment E-006.
+- Runner resets detector statistics after warm-up; leading titles stripped from LLM names.
+
 ### Added — Milestone 4
 - CUDA training environment (`train` group); subword alignment (label-all-subwords, merged-prefix rule, `clean_offsets`); windowed encoding and inference; `privymed-train` (bf16 autocast, fp32 master weights, dev span-F1 selection, run records); `TransformerDetector`; `scripts/run_m4_grid.sh`.
 - Experiments E-003..E-005 (3 models × 3 seeds); RoBERTa primary, DeBERTa pre-registered variant (`configs/selected_models.yaml`).

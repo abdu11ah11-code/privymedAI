@@ -142,3 +142,33 @@ Report: `reports/eval/transformer_v1_dev_roberta_s7.json` (commit `50bf43e`).
 - On dev, the fine-tuned model leaks far less PII than tuned regex (13 characters in 9 documents vs 2.30% of characters) with no hand-written rules, at the cost of more over-redaction.
 - **Epoch cap confound (review M4-3).** 5 of 9 runs reached their best dev score at the 4-epoch cap (DistilBERT 4/4/4, DeBERTa 4/4/2). DistilBERT's dev loss mostly *falls* across epochs, so it looks **under-trained**, not over-fitted (an earlier version of this entry wrongly said it over-fits). Capacity conclusions ("DistilBERT is worse because it is smaller") are therefore confounded with training length.
 - Dev families were unseen in training, but dev chose the epoch, the model and the seed; dev scores are mildly optimistic. Test-ID (in-format) and test-OOD (unseen formats) in M8 are the real estimates.
+
+## E-006 — Local LLM baseline (`llm`: Qwen 3.5 4B via Ollama), dataset v1 / dev
+
+- **Date:** 2026-11-28 · **Commit:** `a3abe6b` (clean) · **Report:** `reports/eval/llm_v1_dev.json` · **Command:** `uv run privymed-eval --system llm --split dev`
+- **Model:** `qwen3.5:4b`, 4.2B parameters, Q4_K_M quantisation, digest `d8b0f5e9760c…`, Ollama 0.40.18, 100% on the RTX 4050 (3.4 GB). Local only (127.0.0.1); no text leaves the machine.
+- **Decoding:** temperature 0, seed 0, context 8,192, thinking off, JSON-schema structured output.
+- **Prompt:** instructions written from the annotation guide; 3 few-shot examples chosen deterministically from **train** (greedy entity-type cover over short documents: `adm_insurance-01548`, `rad_brief-00678`, `rad_brief-01218`); prompt SHA-256 recorded in the report.
+- **Mapping:** returned strings → every whole-word, case-sensitive occurrence; unmatched strings counted as hallucinations; leading titles stripped from PATIENT/STAFF (guide rule, same as the Presidio baseline).
+
+| Mode | Precision | Recall | F1 [95% CI] | Macro F1 |
+|---|---:|---:|---|---:|
+| strict | 0.957 | 0.955 | 0.956 [0.951, 0.960] | 0.963 |
+| boundary | 0.961 | 0.959 | 0.960 [0.955, 0.964] | 0.966 |
+| partial | 0.973 | 0.971 | 0.972 [0.968, 0.976] | 0.976 |
+| overlap | 0.978 | 0.976 | 0.977 [0.973, 0.980] | 0.980 |
+
+- **Leak rate:** 1.71%. **Latency:** 3.9 s/doc p50, 9.8 s p95 (GPU, single run) — about 170× RoBERTa.
+- **Output reliability (600 docs):** 0 parse failures; 19 of 6,669 returned mentions (0.28%) not found in the note (hallucinations); 0 invalid types; 1 type conflict.
+- **Per-type strict F1:** PATIENT 0.936 · STAFF 0.959 · PHONE 0.962 · ID 0.971 · ADDRESS 0.977 · HOSPITAL 0.884 (others in the report).
+
+### Development history (disclosed)
+
+- First full run (commit `0b266ae`, `reports/eval/superseded/llm_v1_dev_before_title_normalisation.json`): strict F1 0.868; STAFF 0.311 strict vs 0.962 partial. On 40 dev documents with STAFF mentions, Qwen kept "Dr." in 40 of 63 STAFF mentions despite the instruction not to include titles. Title stripping was then added to the mapping. This is a dev-informed change, but it only applies the annotation guide's boundary convention (identical to the Presidio baseline's normalisation); it does not change what the model detects (overlap F1 0.976 → 0.977, leak unchanged).
+- The first run's mapping statistics counted 606 documents (warm-up calls included); the runner now resets detector statistics after warm-up.
+
+### Interpretation
+
+- A 4B instruction-tuned model with 3 examples and no fine-tuning reaches strict F1 0.956 and leaks less than tuned regex (1.71% vs 2.30%) — but leaks ~140× more than the fine-tuned RoBERTa (0.012%) and is ~170× slower.
+- Its residual errors are mostly HOSPITAL and PATIENT boundaries and missed entities, not malformed output: structured output plus string mapping made the LLM pipeline reliable.
+- Only one prompt and one model were evaluated (no prompt search on dev beyond the title normalisation), so this is a lower bound on what prompting can do, not a tuned result.
