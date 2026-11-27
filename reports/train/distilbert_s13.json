@@ -1,0 +1,125 @@
+{
+  "run_name": "distilbert_s13",
+  "config": {
+    "run_name": "distilbert_s13",
+    "model_name": "distilbert-base-cased",
+    "manifest": "data\\manifests\\v1.json",
+    "max_length": 512,
+    "stride": 64,
+    "batch_size": 16,
+    "grad_accum": 1,
+    "eval_batch_size": 32,
+    "lr": 5e-05,
+    "weight_decay": 0.01,
+    "warmup_ratio": 0.1,
+    "max_grad_norm": 1.0,
+    "epochs": 4,
+    "patience": 2,
+    "seed": 13,
+    "precision": "bf16",
+    "max_train_docs": null,
+    "max_dev_docs": null,
+    "output_dir": "models",
+    "report_dir": "reports\\train"
+  },
+  "dataset": "v1",
+  "train_documents": 4000,
+  "train_windows": 4034,
+  "alignment": {
+    "straddling": 0,
+    "unlabelled_spans": 0
+  },
+  "best_epoch": 4,
+  "best_dev_strict_f1": 0.9056,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.46945,
+      "dev_loss": 0.13949,
+      "dev_strict": {
+        "tp": 6143,
+        "fp": 2071,
+        "fn": 692,
+        "precision": 0.7479,
+        "recall": 0.8988,
+        "f1": 0.8164
+      },
+      "dev_overlap_f1": 0.9062,
+      "dev_macro_f1": 0.8333,
+      "dev_leak_rate": 0.0061,
+      "epoch_seconds": 54.5
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.01631,
+      "dev_loss": 0.06988,
+      "dev_strict": {
+        "tp": 6312,
+        "fp": 915,
+        "fn": 523,
+        "precision": 0.8734,
+        "recall": 0.9235,
+        "f1": 0.8977
+      },
+      "dev_overlap_f1": 0.9681,
+      "dev_macro_f1": 0.9168,
+      "dev_leak_rate": 0.008,
+      "epoch_seconds": 54.1
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.00912,
+      "dev_loss": 0.08348,
+      "dev_strict": {
+        "tp": 6360,
+        "fp": 991,
+        "fn": 475,
+        "precision": 0.8652,
+        "recall": 0.9305,
+        "f1": 0.8967
+      },
+      "dev_overlap_f1": 0.9593,
+      "dev_macro_f1": 0.9177,
+      "dev_leak_rate": 0.0074,
+      "epoch_seconds": 55.7
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.00599,
+      "dev_loss": 0.07382,
+      "dev_strict": {
+        "tp": 6420,
+        "fp": 923,
+        "fn": 415,
+        "precision": 0.8743,
+        "recall": 0.9393,
+        "f1": 0.9056
+      },
+      "dev_overlap_f1": 0.9616,
+      "dev_macro_f1": 0.9249,
+      "dev_leak_rate": 0.0044,
+      "epoch_seconds": 55.8
+    }
+  ],
+  "train_seconds": 220.6,
+  "peak_gpu_memory_gib": 2.48,
+  "device": "NVIDIA GeForce RTX 4050 Laptop GPU",
+  "checkpoint": "models/distilbert_s13",
+  "git": {
+    "commit": "c8ed4b8",
+    "dirty": false
+  },
+  "packages": {
+    "privymed": "0.1.0",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "presidio-analyzer": "2.2.362",
+    "spacy": "3.8.18",
+    "en-core-web-lg": "3.8.0",
+    "torch": "2.11.0+cu128"
+  },
+  "environment": {
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26300-SP0"
+  }
+}
