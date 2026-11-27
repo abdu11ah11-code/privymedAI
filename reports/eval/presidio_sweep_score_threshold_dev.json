@@ -1,85 +1,102 @@
 {
   "system": "presidio",
+  "dataset_version": "v1",
   "split": "dev",
   "param": "score_threshold",
   "rows": [
     {
       "score_threshold": 0.3,
       "strict": {
-        "tp": 5129,
-        "fp": 2241,
-        "fn": 1706,
-        "precision": 0.6959,
-        "recall": 0.7504,
-        "f1": 0.7221
+        "tp": 5191,
+        "fp": 2179,
+        "fn": 1644,
+        "precision": 0.7043,
+        "recall": 0.7595,
+        "f1": 0.7309
       },
       "overlap_f1": 0.9026,
-      "leak_rate": 0.1354
+      "leak_rate": 0.1348
     },
     {
       "score_threshold": 0.4,
       "strict": {
-        "tp": 5129,
-        "fp": 2241,
-        "fn": 1706,
-        "precision": 0.6959,
-        "recall": 0.7504,
-        "f1": 0.7221
+        "tp": 5191,
+        "fp": 2179,
+        "fn": 1644,
+        "precision": 0.7043,
+        "recall": 0.7595,
+        "f1": 0.7309
       },
       "overlap_f1": 0.9026,
-      "leak_rate": 0.1354
+      "leak_rate": 0.1348
     },
     {
       "score_threshold": 0.5,
       "strict": {
-        "tp": 4485,
-        "fp": 2297,
-        "fn": 2350,
-        "precision": 0.6613,
-        "recall": 0.6562,
-        "f1": 0.6587
+        "tp": 4496,
+        "fp": 2286,
+        "fn": 2339,
+        "precision": 0.6629,
+        "recall": 0.6578,
+        "f1": 0.6604
+      },
+      "overlap_f1": 0.8553,
+      "leak_rate": 0.2128
+    },
+    {
+      "score_threshold": 0.6,
+      "strict": {
+        "tp": 4494,
+        "fp": 2285,
+        "fn": 2341,
+        "precision": 0.6629,
+        "recall": 0.6575,
+        "f1": 0.6602
       },
       "overlap_f1": 0.8553,
       "leak_rate": 0.2129
     },
     {
-      "score_threshold": 0.6,
-      "strict": {
-        "tp": 4483,
-        "fp": 2296,
-        "fn": 2352,
-        "precision": 0.6613,
-        "recall": 0.6559,
-        "f1": 0.6586
-      },
-      "overlap_f1": 0.8553,
-      "leak_rate": 0.2131
-    },
-    {
       "score_threshold": 0.7,
       "strict": {
-        "tp": 4097,
-        "fp": 2303,
-        "fn": 2738,
-        "precision": 0.6402,
-        "recall": 0.5994,
-        "f1": 0.6191
+        "tp": 4108,
+        "fp": 2292,
+        "fn": 2727,
+        "precision": 0.6419,
+        "recall": 0.601,
+        "f1": 0.6208
       },
       "overlap_f1": 0.8225,
-      "leak_rate": 0.2492
+      "leak_rate": 0.2491
     }
   ],
   "best": {
     "score_threshold": 0.3,
     "strict": {
-      "tp": 5129,
-      "fp": 2241,
-      "fn": 1706,
-      "precision": 0.6959,
-      "recall": 0.7504,
-      "f1": 0.7221
+      "tp": 5191,
+      "fp": 2179,
+      "fn": 1644,
+      "precision": 0.7043,
+      "recall": 0.7595,
+      "f1": 0.7309
     },
     "overlap_f1": 0.9026,
-    "leak_rate": 0.1354
+    "leak_rate": 0.1348
+  },
+  "git": {
+    "commit": "a5c620b",
+    "dirty": false
+  },
+  "packages": {
+    "privymed": "0.1.0",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "presidio-analyzer": "2.2.362",
+    "spacy": "3.8.18",
+    "en-core-web-lg": "3.8.0"
+  },
+  "environment": {
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26300-SP0"
   }
 }

@@ -8,7 +8,7 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
 | 1 | Foundation | DONE | git + GitHub remote, uv env, schema + Detector interface, tests/ruff/mypy pass, docs skeleton |
 | 2 | Synthetic dataset engine | DONE (v1 frozen) | ≥15 template families, ≥8 doc types, validator 0 errors, family-level splits, leakage check passes, stats report |
 | 2b | OOD test set | NOT STARTED | 150–300 LLM-written notes, every annotation manually verified |
-| 3 | Baselines + span evaluator | IN PROGRESS (review pending) | Regex + Presidio implement `Detector`; evaluator matches hand-computed cases; seqeval cross-check |
+| 3 | Baselines + span evaluator | DONE | Regex + Presidio implement `Detector`; evaluator matches hand-computed cases; seqeval cross-check |
 | 4 | Transformer training | NOT STARTED | 3 candidates × 3 seeds on dev; checkpoint reload reproduces dev score; experiments logged |
 | 5 | Qwen LLM baseline | NOT STARTED | Prompt + schema documented; parse/hallucination failures counted; same docs and evaluator |
 | 6 | Error analysis → hybrid | NOT STARTED | Error taxonomy on dev; each fusion rule justified by a dev finding; ablations |
@@ -64,7 +64,7 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
 ## Milestone 3 tasks
 
 - [x] 3.1 Span evaluator: strict / boundary / partial / overlap, leak rate, bootstrap CIs; seqeval cross-check (docs/EVALUATION.md)
-- [x] 3.2 Regex baseline — dev strict F1 0.979, leak 2.34% (E-001; tuned 3 iterations on dev)
-- [x] 3.3 Presidio baseline — dev strict F1 0.722, overlap 0.903, leak 13.54% (E-002)
+- [x] 3.2 Regex baseline — dev strict F1 0.980, leak 2.30% (E-001; tuned 3 iterations on dev)
+- [x] 3.3 Presidio baseline — dev strict F1 0.731, overlap 0.903, leak 13.48% (E-002)
 - [x] 3.4 `privymed-eval` runner: manifest check, test-split guard, dev-only sweeps, latency
-- [ ] Independent review → fixes → commit → push
+- [x] Independent review: 1 critical (test-template cues leaked into rules), 5 important, minors — all fixed; E-001/E-002 re-run from clean commit `a5c620b`

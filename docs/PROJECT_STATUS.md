@@ -1,6 +1,6 @@
 # Project status
 
-_Last updated: 2026-11-27 (end of Milestone 2)_
+_Last updated: 2026-11-27 (end of Milestone 3)_
 
 ## Environment
 - Windows 11 Pro · Ryzen 7 170 (8C/16T) · 15.3 GB RAM · RTX 4050 Laptop 6 GB (driver 591.62, CUDA 13.1 capable) · 145 GB free
@@ -15,6 +15,11 @@ _Last updated: 2026-11-27 (end of Milestone 2)_
   - Family-level constrained splits; per-split hospital/narrative pools; manifest with SHA-256.
   - `privymed-validate`: shape, BIO, duplicates (raw + structural), family-leak, identifier overlap, title shortcut stats.
   - Independent review: 0 critical, 5 important, 8 minor — all addressed (ADR-007).
+- **Milestone 3** — evaluator and baselines:
+  - `privymed.evaluation`: strict / boundary / partial / overlap, maximum-cardinality matching, leak rate, bootstrap CIs; seqeval cross-check (docs/EVALUATION.md).
+  - `privymed-eval`: manifest verification, test-split allowlist + hash guard, dev-only sweeps, provenance (git dirty state, packages).
+  - Baselines on **dev** (E-001, E-002, clean commit `a5c620b`): regex strict F1 0.980 [0.975, 0.984], leak 2.30%, ~0.4 ms/doc; Presidio strict F1 0.731 [0.722, 0.740], overlap 0.903, leak 13.48%, ~25 ms/doc.
+  - Independent review: 1 critical (9 rule cues absent from train/dev, 5 from test templates — removed, now lint-tested), 5 important, minors — all fixed.
 
 ## Dataset status — v1 (frozen)
 | Split | Docs | Spans | Families | SHA-256 (prefix) |
@@ -36,14 +41,14 @@ _Last updated: 2026-11-27 (end of Milestone 2)_
 - Ages > 89 are not annotated (out of schema).
 
 ## Tests
-- 459 passed, 3 skipped (entity-free families exempt from the ≥3-types rule). ruff + mypy --strict clean.
+- 572 passed, 3 skipped (entity-free families exempt from the ≥3-types rule). ruff + mypy --strict clean.
 
 ## Model status
-- No models trained. NOT MEASURED.
+- Baselines evaluated on dev only (regex, Presidio). No learned models trained yet. Test splits untouched.
 
 ## Deployment status
 - NOT IMPLEMENTED.
 
 ## Next task
-- **Milestone 2b:** test-OOD set — notes written by a different process (local LLM), manually verified annotations. Requires installing Ollama + a Qwen model (~3 GB).
-- Alternatively start **Milestone 3** (regex + Presidio baselines + span evaluator) first and do 2b in parallel later; 2b is not needed until M8.
+- **Milestone 2b:** test-OOD set — LLM-written notes, pre-labelled by the baselines, corrected by hand. Requires Ollama + a Qwen model (~3 GB).
+- **Milestone 4:** BERT-family token classifier training on train, model selection on dev.

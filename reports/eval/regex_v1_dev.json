@@ -2,43 +2,56 @@
   "system": "regex",
   "dataset_version": "v1",
   "split": "dev",
-  "git_commit": "fb8f068",
+  "params": {},
+  "detector_config": {},
+  "git": {
+    "commit": "a5c620b",
+    "dirty": false
+  },
+  "packages": {
+    "privymed": "0.1.0",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "presidio-analyzer": "2.2.362",
+    "spacy": "3.8.18",
+    "en-core-web-lg": "3.8.0"
+  },
   "environment": {
     "python": "3.12.10",
     "platform": "Windows-11-10.0.26300-SP0",
     "processor": "AMD64 Family 25 Model 68 Stepping 1, AuthenticAMD"
   },
   "latency_ms_per_doc": {
-    "mean": 0.474,
-    "p50": 0.345,
-    "p95": 0.958
+    "mean": 0.493,
+    "p50": 0.376,
+    "p95": 1.03
   },
   "throughput": {
-    "docs_per_s": 2111.4,
-    "chars_per_s": 992813
+    "docs_per_s": 2027.3,
+    "chars_per_s": 953278
   },
   "first_call_ms": 0.0,
   "metrics": {
     "n_docs": 600,
-    "leak_rate": 0.0234,
+    "leak_rate": 0.023,
     "strict": {
       "micro": {
-        "tp": 6575,
-        "fp": 16,
-        "fn": 260,
-        "precision": 0.9976,
-        "recall": 0.962,
-        "f1": 0.9794
+        "tp": 6579,
+        "fp": 15,
+        "fn": 256,
+        "precision": 0.9977,
+        "recall": 0.9625,
+        "f1": 0.9798
       },
-      "macro_f1": 0.982,
+      "macro_f1": 0.9822,
       "per_label": {
         "PATIENT": {
-          "tp": 1221,
-          "fp": 9,
-          "fn": 39,
-          "precision": 0.9927,
-          "recall": 0.969,
-          "f1": 0.9807
+          "tp": 1225,
+          "fp": 8,
+          "fn": 35,
+          "precision": 0.9935,
+          "recall": 0.9722,
+          "f1": 0.9828
         },
         "STAFF": {
           "tp": 746,
@@ -107,41 +120,41 @@
       },
       "ci95": {
         "precision": [
-          0.9963,
+          0.9965,
           0.9988
         ],
         "recall": [
-          0.9535,
-          0.9694
+          0.9544,
+          0.9696
         ],
         "f1": [
-          0.9748,
-          0.9834
+          0.9752,
+          0.9836
         ],
         "leak_rate": [
-          0.0168,
-          0.0315
+          0.0166,
+          0.0308
         ]
       }
     },
     "boundary": {
       "micro": {
-        "tp": 6585,
-        "fp": 6,
-        "fn": 250,
-        "precision": 0.9991,
-        "recall": 0.9634,
-        "f1": 0.9809
+        "tp": 6589,
+        "fp": 5,
+        "fn": 246,
+        "precision": 0.9992,
+        "recall": 0.964,
+        "f1": 0.9813
       },
-      "macro_f1": 0.9832,
+      "macro_f1": 0.9834,
       "per_label": {
         "PATIENT": {
-          "tp": 1224,
-          "fp": 2,
-          "fn": 36,
-          "precision": 0.9984,
-          "recall": 0.9714,
-          "f1": 0.9847
+          "tp": 1228,
+          "fp": 1,
+          "fn": 32,
+          "precision": 0.9992,
+          "recall": 0.9746,
+          "f1": 0.9867
         },
         "STAFF": {
           "tp": 753,
@@ -210,41 +223,41 @@
       },
       "ci95": {
         "precision": [
-          0.9983,
-          0.9997
+          0.9985,
+          0.9998
         ],
         "recall": [
-          0.955,
-          0.9707
+          0.9559,
+          0.9711
         ],
         "f1": [
-          0.9765,
-          0.9847
+          0.977,
+          0.9849
         ],
         "leak_rate": [
-          0.0168,
-          0.0315
+          0.0166,
+          0.0308
         ]
       }
     },
     "partial": {
       "micro": {
-        "tp": 6581,
+        "tp": 6584,
         "fp": 10,
-        "fn": 254,
+        "fn": 251,
         "precision": 0.9985,
-        "recall": 0.9628,
-        "f1": 0.9803
+        "recall": 0.9633,
+        "f1": 0.9806
       },
-      "macro_f1": 0.9827,
+      "macro_f1": 0.9828,
       "per_label": {
         "PATIENT": {
-          "tp": 1223,
+          "tp": 1226,
           "fp": 7,
-          "fn": 37,
+          "fn": 34,
           "precision": 0.9943,
-          "recall": 0.9706,
-          "f1": 0.9823
+          "recall": 0.973,
+          "f1": 0.9836
         },
         "STAFF": {
           "tp": 746,
@@ -317,37 +330,37 @@
           0.9994
         ],
         "recall": [
-          0.9546,
-          0.9703
+          0.9552,
+          0.9706
         ],
         "f1": [
-          0.9758,
-          0.9843
+          0.9762,
+          0.9844
         ],
         "leak_rate": [
-          0.0168,
-          0.0315
+          0.0166,
+          0.0308
         ]
       }
     },
     "overlap": {
       "micro": {
-        "tp": 6591,
+        "tp": 6594,
         "fp": 0,
-        "fn": 244,
+        "fn": 241,
         "precision": 1.0,
-        "recall": 0.9643,
-        "f1": 0.9818
+        "recall": 0.9647,
+        "f1": 0.9821
       },
-      "macro_f1": 0.9839,
+      "macro_f1": 0.984,
       "per_label": {
         "PATIENT": {
-          "tp": 1226,
+          "tp": 1229,
           "fp": 0,
-          "fn": 34,
+          "fn": 31,
           "precision": 1.0,
-          "recall": 0.973,
-          "f1": 0.9863
+          "recall": 0.9754,
+          "f1": 0.9875
         },
         "STAFF": {
           "tp": 753,
@@ -420,16 +433,16 @@
           1.0
         ],
         "recall": [
-          0.9558,
-          0.9717
+          0.9565,
+          0.972
         ],
         "f1": [
-          0.9774,
-          0.9856
+          0.9777,
+          0.9858
         ],
         "leak_rate": [
-          0.0168,
-          0.0315
+          0.0166,
+          0.0308
         ]
       }
     }

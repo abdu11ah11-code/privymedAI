@@ -4,7 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
-### Added — Milestone 3 (in progress)
+### Fixed — Milestone 3 independent review
+- Removed 9 rule cues absent from train/dev (5 from test_id templates); shared `detectors/cues.py` with a train/dev occurrence lint test.
+- Presidio keeps balanced parentheses (PHONE strict F1 0.917 → 0.980 on dev); docstring discloses shared cue logic.
+- Maximum-cardinality span matching (Hungarian), brute-force tested.
+- Test guard: train/dev allowlist plus hash check against all manifests' test files.
+- Reports record git dirty state and package versions; sweeps carry provenance; `baselines` is a default uv group.
+
+### Added — Milestone 3
 - 3.1 `privymed.evaluation`: four matching modes, one-to-one greedy matching, leak rate, document bootstrap CIs; `docs/EVALUATION.md`; seqeval cross-check test.
 - 3.2 `RegexDetector` baseline with unit tests for guide examples and hard negatives.
 - 3.3 `PresidioDetector` (Presidio + spaCy `en_core_web_lg`) configured for the schema; custom CNIC and record-ID recognizers; `baselines` dependency group.
