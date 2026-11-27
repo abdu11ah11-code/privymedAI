@@ -1,0 +1,126 @@
+{
+  "run_name": "deberta_s13",
+  "config": {
+    "run_name": "deberta_s13",
+    "model_name": "microsoft/deberta-v3-base",
+    "manifest": "data\\manifests\\v1.json",
+    "max_length": 512,
+    "stride": 64,
+    "batch_size": 4,
+    "grad_accum": 4,
+    "eval_batch_size": 32,
+    "lr": 3e-05,
+    "weight_decay": 0.01,
+    "warmup_ratio": 0.1,
+    "max_grad_norm": 1.0,
+    "epochs": 4,
+    "patience": 2,
+    "seed": 13,
+    "precision": "bf16",
+    "max_train_docs": null,
+    "max_dev_docs": null,
+    "output_dir": "models",
+    "report_dir": "reports\\train"
+  },
+  "dataset": "v1",
+  "train_documents": 4000,
+  "train_windows": 4000,
+  "alignment": {
+    "straddling": 0,
+    "unlabelled_spans": 0
+  },
+  "best_epoch": 4,
+  "best_dev_strict_f1": 0.9855,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.43458,
+      "dev_loss": 0.0329,
+      "dev_strict": {
+        "tp": 6816,
+        "fp": 325,
+        "fn": 19,
+        "precision": 0.9545,
+        "recall": 0.9972,
+        "f1": 0.9754
+      },
+      "dev_overlap_f1": 0.9778,
+      "dev_macro_f1": 0.98,
+      "dev_leak_rate": 0.0,
+      "epoch_seconds": 275.6
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.00304,
+      "dev_loss": 0.01592,
+      "dev_strict": {
+        "tp": 6796,
+        "fp": 240,
+        "fn": 39,
+        "precision": 0.9659,
+        "recall": 0.9943,
+        "f1": 0.9799
+      },
+      "dev_overlap_f1": 0.9848,
+      "dev_macro_f1": 0.9845,
+      "dev_leak_rate": 0.0001,
+      "epoch_seconds": 450.7
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.00137,
+      "dev_loss": 0.00939,
+      "dev_strict": {
+        "tp": 6781,
+        "fp": 151,
+        "fn": 54,
+        "precision": 0.9782,
+        "recall": 0.9921,
+        "f1": 0.9851
+      },
+      "dev_overlap_f1": 0.9921,
+      "dev_macro_f1": 0.9885,
+      "dev_leak_rate": 0.0002,
+      "epoch_seconds": 387.8
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.00077,
+      "dev_loss": 0.00978,
+      "dev_strict": {
+        "tp": 6795,
+        "fp": 160,
+        "fn": 40,
+        "precision": 0.977,
+        "recall": 0.9941,
+        "f1": 0.9855
+      },
+      "dev_overlap_f1": 0.99,
+      "dev_macro_f1": 0.9881,
+      "dev_leak_rate": 0.0002,
+      "epoch_seconds": 386.9
+    }
+  ],
+  "train_seconds": 1503.6,
+  "peak_gpu_memory_gib": 5.36,
+  "device": "NVIDIA GeForce RTX 4050 Laptop GPU",
+  "weight_dtype": "torch.float32",
+  "checkpoint": "models/deberta_s13",
+  "git": {
+    "commit": "2982ec7",
+    "dirty": false
+  },
+  "packages": {
+    "privymed": "0.1.0",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "presidio-analyzer": "2.2.362",
+    "spacy": "3.8.18",
+    "en-core-web-lg": "3.8.0",
+    "torch": "2.11.0+cu128"
+  },
+  "environment": {
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26300-SP0"
+  }
+}

@@ -10,7 +10,7 @@ for model in "${models[@]}"; do
   for seed in 13 42 7; do
     echo "=== ${model} seed ${seed} ==="
     uv run privymed-train --config "configs/train/${model}.yaml" --seed "${seed}" --run-name "${model}_s${seed}" 2>&1 \
-      | grep -E "privymed.training.train|best dev strict|Error|Traceback" || true
+      | grep --line-buffered -E "privymed.training.train|best dev strict|Error|Traceback" || true
   done
 done
 echo "=== grid done ==="

@@ -82,3 +82,56 @@ Per-type F1 by mode (strict / partial / overlap): PATIENT 0.529 / 0.745 / 0.841 
 - **Shared logic (disclosed).** Presidio's ID recognizer and its STAFF/PATIENT split use the same cue lists and ID shapes as the regex baseline (`detectors/cues.py`), because Presidio has no record-number or clinical-role concept. Name, date, phone, hospital and address detection are Presidio/spaCy only.
 - **Default-configuration failures fixed by configuration** (smoke test before E-002): phone and MRN tagged DATE by spaCy, "CNIC"/"MRN" tagged ORGANIZATION, US driver-licence and URL noise. See ADR in the detector docstring.
 - Compared with E-001 (regex), Presidio leaks ~6× more PII characters on dev (13.5% vs 2.3%) and is roughly 60× slower (single-run latency). Both are dev numbers; regex was tuned on dev for three iterations, Presidio only by threshold.
+
+## E-003 / E-004 / E-005 — Transformer token classifiers, dataset v1 / dev
+
+- **Date:** 2026-11-27 · **Grid:** `bash scripts/run_m4_grid.sh` (3 models × seeds 13, 42, 7) · **Run records:** `reports/train/<model>_s<seed>.json`
+- **Commits:** DistilBERT and RoBERTa runs at `c8ed4b8`; DeBERTa runs at `2982ec7` (after the fp32-weights fix below). All records `git.dirty = false`. Between the two commits only progress logging and explicit fp32 loading changed; DistilBERT and RoBERTa already load as fp32 by default, so the runs are comparable.
+- **Hardware:** RTX 4050 Laptop 6 GB, bf16 autocast, fp32 master weights. **Training data:** train (4,000 docs, 4,034 windows at max length 512 / stride 64). **Selection:** best epoch by dev strict micro F1 (≤ 4 epochs, patience 2).
+- **Hyperparameters:** each model's commonly recommended learning rate (DistilBERT 5e-5, RoBERTa and DeBERTa 3e-5), effective batch 16, warmup 10%, weight decay 0.01. Not tuned per model — a fair-but-limited comparison.
+
+| Model | Params | Dev strict F1 (mean ± std, 3 seeds) | Dev overlap F1 | Dev leak | Best epochs | Train time / run | Peak VRAM |
+|---|---:|---|---:|---:|---|---:|---:|
+| distilbert-base-cased | 66M | 0.9115 ± 0.0105 | 0.9627 ± 0.0011 | 0.48% | 4, 4, 4 | 3.7 min | 2.48 GiB |
+| roberta-base | 125M | **0.9912 ± 0.0010** | 0.9951 ± 0.0020 | 0.02% | 3, 2, 4 | 6.9 min | 3.74 GiB |
+| microsoft/deberta-v3-base | 184M | 0.9930 ± 0.0069 | 0.9955 ± 0.0049 | 0.02% | 4, 4, 2 | 22.7 min | 5.37 GiB |
+
+Per seed (13 / 42 / 7): DistilBERT 0.9056 / 0.9053 / 0.9237 · RoBERTa 0.9914 / 0.9901 / 0.9920 · DeBERTa 0.9855 / 0.9945 / 0.9991.
+
+### Model selection
+
+**RoBERTa-base**, representative checkpoint **`roberta_s13`** (median seed, not best seed — choosing the best seed would be one more act of tuning on dev).
+
+- DeBERTa's mean is 0.0018 higher, which is smaller than its own seed standard deviation (0.0069): no meaningful difference.
+- RoBERTa is ~7× more stable across seeds, ~3.3× faster to train, uses 1.6 GiB less memory and is ~32% smaller (relevant for ONNX and deployment in M9–M11).
+- DistilBERT is kept as the small-model candidate for the optimisation milestone.
+
+### Selected model on dev (`privymed-eval --system transformer --param checkpoint=models/roberta_s13`)
+
+Report: `reports/eval/transformer_v1_dev_roberta_s13.json`
+
+| Mode | Precision | Recall | F1 [95% CI] |
+|---|---:|---:|---|
+| strict | 0.987 | 0.997 | 0.992 [0.990, 0.993] |
+| boundary | 0.989 | 1.000 | 0.995 [0.993, 0.996] |
+| overlap | 0.990 | 1.000 | 0.995 [0.994, 0.996] |
+
+Leak rate **0.010%**. Per-type strict F1: PATIENT 0.982 · STAFF 0.985 · DATE 0.999 · PHONE 1.000 · EMAIL 1.000 · CNIC 1.000 · ID 0.998 · ADDRESS 0.998 · HOSPITAL 0.980. Latency ~18 ms/doc mean (GPU, whole-split batched).
+
+### Reproducibility checks
+
+- A reloaded checkpoint reproduces its training-time dev strict F1 **exactly** (roberta_s13 0.9914, deberta_s42 0.9945, distilbert_s7 0.9237) when inference uses the same call shape as training (one call over the split). Chunking documents differently changes how windows are batched and moved scores by ±0.0002 under bf16.
+- Same-seed training is **not** bitwise reproducible on this GPU (deterministic algorithms are off): a preliminary DistilBERT seed-13 run gave 0.8994, the grid run 0.9056. Seed-to-seed std is therefore the honest uncertainty measure.
+
+### Problems found and fixed during the grid
+
+- **DeBERTa NaN loss:** Transformers 5 keeps a checkpoint's stored dtype; `deberta-v3-base` is stored in fp16, so training ran with fp16 master weights → NaN from the first steps (record deleted). Weights are now always loaded as fp32; a non-finite loss aborts the run.
+- **DeBERTa stall:** batch 8 filled the 6 GB GPU and Windows spilled into system RAM (no epoch in 46 min). Batch 4 × accumulation 4 keeps the effective batch at 16.
+- **DeBERTa tokenizer offsets** include SentencePiece's leading space (39,572 straddling tokens before `clean_offsets`; 0 after).
+- **RoBERTa BPE** merges "(+" / "(#": 323 unavoidable boundary straddles on train (0 on dev).
+
+### Interpretation and caveats
+
+- On dev, the fine-tuned model leaks ~230× less PII than tuned regex (0.010% vs 2.30%) and ~1,300× less than Presidio, with no hand-written rules; its largest gains are on context-dependent types (STAFF 0.985 vs regex 0.940, HOSPITAL 0.980 vs 0.929).
+- Dev families were unseen in training, but dev chose the best epoch and the model; dev scores are therefore mildly optimistic. Test-ID (in-format) and test-OOD (unseen formats) in M8 are the real estimates.
+- The DistilBERT gap (0.91) shows capacity matters on unseen document structures: DistilBERT overfits train families (train loss → 0.006 while dev loss rises after epoch 2).

@@ -150,15 +150,14 @@ def run_detector(
     preds: dict[str, list[Span]] = {}
     latency = np.zeros(len(docs))
     if getattr(detector, "prefers_batch", False):
-        size = int(getattr(detector, "batch_size", 32))
-        for b in range(0, len(docs), size):
-            chunk = docs[b : b + size]
-            t0 = time.perf_counter()
-            outs = detector.detect_batch([d.text for d in chunk])
-            per_doc = (time.perf_counter() - t0) * 1000 / len(chunk)
-            for i, (doc, spans) in enumerate(zip(chunk, outs, strict=True)):
-                preds[doc.doc_id] = spans
-                latency[b + i] = per_doc
+        # One call over the whole split, exactly like training-time dev selection, so the
+        # model packs *windows* into batches identically (chunking by documents changed
+        # window batches and moved RoBERTa dev F1 0.9914 -> 0.9916). Latency = mean only.
+        t0 = time.perf_counter()
+        outs = detector.detect_batch([d.text for d in docs])
+        latency[:] = (time.perf_counter() - t0) * 1000 / max(1, len(docs))
+        for doc, spans in zip(docs, outs, strict=True):
+            preds[doc.doc_id] = spans
         return preds, latency
     for i, doc in enumerate(docs):
         t0 = time.perf_counter()
@@ -208,7 +207,9 @@ def evaluate_system(
             "platform": platform.platform(),
             "processor": platform.processor(),
         },
-        "latency_mode": "batched" if getattr(detector, "prefers_batch", False) else "per_document",
+        "latency_mode": "whole_split_batched_mean"
+        if getattr(detector, "prefers_batch", False)
+        else "per_document",
         "latency_ms_per_doc": {
             "mean": round(float(latency.mean()), 3),
             "p50": round(float(np.percentile(latency, 50)), 3),

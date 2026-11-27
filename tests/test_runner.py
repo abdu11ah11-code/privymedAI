@@ -120,8 +120,9 @@ class _Batchy(Detector):
         return [[] for _ in texts]
 
 
-def test_batch_preferring_detector_is_run_in_chunks() -> None:
+def test_batch_preferring_detector_gets_the_whole_split_in_one_call() -> None:
     det = _Batchy()
     docs = [Document(doc_id=str(i), text="x") for i in range(7)]
     preds, latency = run_detector(det, docs, warmup=0)
-    assert det.batch_calls == [3, 3, 1] and len(preds) == 7 and latency.shape == (7,)
+    assert det.batch_calls == [7] and len(preds) == 7 and latency.shape == (7,)
+    assert len(set(latency.tolist())) == 1  # mean latency only

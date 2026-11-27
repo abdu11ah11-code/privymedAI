@@ -9,7 +9,7 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
 | 2 | Synthetic dataset engine | DONE (v1 frozen) | ≥15 template families, ≥8 doc types, validator 0 errors, family-level splits, leakage check passes, stats report |
 | 2b | OOD test set | NOT STARTED | 150–300 LLM-written notes, every annotation manually verified |
 | 3 | Baselines + span evaluator | DONE | Regex + Presidio implement `Detector`; evaluator matches hand-computed cases; seqeval cross-check |
-| 4 | Transformer training | NOT STARTED | 3 candidates × 3 seeds on dev; checkpoint reload reproduces dev score; experiments logged |
+| 4 | Transformer training | IN PROGRESS (review pending) | 3 candidates × 3 seeds on dev; checkpoint reload reproduces dev score; experiments logged |
 | 5 | Qwen LLM baseline | NOT STARTED | Prompt + schema documented; parse/hallucination failures counted; same docs and evaluator |
 | 6 | Error analysis → hybrid | NOT STARTED | Error taxonomy on dev; each fusion rule justified by a dev finding; ablations |
 | 7 | Redaction engine | NOT STARTED | Mask / label / surrogate modes; non-PII text preserved byte-for-byte (property tests) |
@@ -68,3 +68,12 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
 - [x] 3.3 Presidio baseline — dev strict F1 0.731, overlap 0.903, leak 13.48% (E-002)
 - [x] 3.4 `privymed-eval` runner: manifest check, test-split guard, dev-only sweeps, latency
 - [x] Independent review: 1 critical (test-template cues leaked into rules), 5 important, minors — all fixed; E-001/E-002 re-run from clean commit `a5c620b`
+
+## Milestone 4 tasks
+
+- [x] 4.1 CUDA environment: torch 2.11.0+cu128, RTX 4050 verified (bf16 capable)
+- [x] 4.2 Subword statistics (train/dev): mean ~175 tokens/doc; windows 512/64; tokenizer offset audit
+- [x] 4.3 Span <-> subword alignment (label-all-subwords) with real-tokenizer round-trip tests
+- [x] 4.4 Training pipeline (bf16, fp32 master weights, dev span-F1 selection, run records) and windowed inference
+- [x] 4.5 Grid 3 models x 3 seeds -> RoBERTa selected (dev strict F1 0.9912 +/- 0.0010); checkpoint reload reproduces dev score exactly
+- [ ] Independent review -> fixes -> commit -> push
