@@ -32,18 +32,37 @@ log = get_logger(__name__)
 TEST_SPLITS = frozenset({"test_id", "test_ood"})
 
 
-def _regex() -> Detector:
+Params = dict[str, float]
+
+
+def _regex(**params: float) -> Detector:
     from privymed.detectors.regex import RegexDetector
 
+    if params:
+        raise ValueError("regex takes no parameters")
     return RegexDetector()
 
 
-# System name -> factory. Imports are lazy so heavy systems load only when asked for.
-SYSTEMS: dict[str, Callable[[], Detector]] = {"regex": _regex}
+def _presidio(**params: float) -> Detector:
+    from privymed.detectors.presidio import PresidioDetector
+
+    return PresidioDetector(**params)
 
 
-def register(name: str, factory: Callable[[], Detector]) -> None:
+# System name -> factory(**params). Imports are lazy so heavy systems load only when asked for.
+SYSTEMS: dict[str, Callable[..., Detector]] = {"regex": _regex, "presidio": _presidio}
+
+
+def register(name: str, factory: Callable[..., Detector]) -> None:
     SYSTEMS[name] = factory
+
+
+def _parse_params(items: Sequence[str]) -> Params:
+    out: Params = {}
+    for item in items:
+        key, _, value = item.partition("=")
+        out[key.strip()] = float(value)
+    return out
 
 
 def _git_commit(root: Path) -> str:
@@ -80,7 +99,9 @@ def evaluate_system(
     manifest_path: Path,
     root: Path,
     final: bool = False,
+    params: Params | None = None,
 ) -> dict[str, object]:
+    params = params or {}
     if split in TEST_SPLITS and not final:
         raise PermissionError(
             f"{split!r} is a frozen test split: only the Milestone 8 final evaluation may use it "
@@ -92,7 +113,7 @@ def evaluate_system(
         raise KeyError(f"split {split!r} not in manifest")
     docs = read_documents(root / manifest["files"][split]["path"])
 
-    detector = SYSTEMS[system]()
+    detector = SYSTEMS[system](**params)
     load_t0 = time.perf_counter()
     detector.detect("warm-up")
     load_ms = (time.perf_counter() - load_t0) * 1000
@@ -106,6 +127,8 @@ def evaluate_system(
         "system": system,
         "dataset_version": manifest["version"],
         "split": split,
+        "params": params,
+        "detector_config": detector.config() if hasattr(detector, "config") else {},
         "git_commit": _git_commit(root),
         "environment": {
             "python": platform.python_version(),
@@ -124,6 +147,37 @@ def evaluate_system(
         "first_call_ms": round(load_ms, 1),
         "metrics": result.summary(bootstrap=True),
     }
+
+
+def sweep(
+    system: str,
+    key: str,
+    values: Sequence[float],
+    manifest_path: Path,
+    root: Path,
+    split: str = "dev",
+) -> dict[str, object]:
+    """Evaluate one parameter grid on a *development* split and pick the best strict F1.
+
+    Test splits are always refused: tuning on test is never legitimate.
+    """
+    if split in TEST_SPLITS:
+        raise PermissionError("parameter sweeps may only use development splits")
+    rows = []
+    for value in values:
+        report = evaluate_system(system, split, manifest_path, root, params={key: value})
+        metrics = report["metrics"]
+        assert isinstance(metrics, dict)
+        rows.append(
+            {
+                key: value,
+                "strict": metrics["strict"]["micro"],
+                "overlap_f1": metrics["overlap"]["micro"]["f1"],
+                "leak_rate": metrics["leak_rate"],
+            }
+        )
+    best = max(rows, key=lambda r: (r["strict"]["f1"], -r[key]))  # tie -> lower threshold
+    return {"system": system, "split": split, "param": key, "rows": rows, "best": best}
 
 
 def _print_summary(report: dict[str, object]) -> None:
@@ -147,10 +201,36 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument("--manifest", type=Path, default=Path("data/manifests/v1.json"))
     parser.add_argument("--report-dir", type=Path, default=Path("reports/eval"))
     parser.add_argument("--final", action="store_true", help="Milestone 8 only: allow test splits")
+    parser.add_argument("--param", action="append", default=[], help="detector param key=value")
+    parser.add_argument("--sweep", help="dev-only grid, e.g. score_threshold=0.3,0.4,0.5")
     args = parser.parse_args(argv)
     setup_logging("INFO")
     root = find_repo_root()
-    report = evaluate_system(args.system, args.split, root / args.manifest, root, args.final)
+    if args.sweep:
+        key, _, raw = args.sweep.partition("=")
+        result = sweep(
+            args.system,
+            key,
+            [float(v) for v in raw.split(",")],
+            root / args.manifest,
+            root,
+            args.split,
+        )
+        out = root / args.report_dir / f"{args.system}_sweep_{key}_{args.split}.json"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8", newline="\n")
+        for row in result["rows"]:  # type: ignore[attr-defined]
+            s = row["strict"]
+            print(
+                f"  {key}={row[key]:<5} strict P={s['precision']:.3f} R={s['recall']:.3f} "
+                f"F1={s['f1']:.3f}  leak={row['leak_rate']:.3%}"
+            )
+        print(f"  best: {key}={result['best'][key]}  report: {out.relative_to(root).as_posix()}")  # type: ignore[index]
+        return
+    params = _parse_params(args.param)
+    report = evaluate_system(
+        args.system, args.split, root / args.manifest, root, args.final, params
+    )
     out = root / args.report_dir / f"{args.system}_{report['dataset_version']}_{args.split}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8", newline="\n")
