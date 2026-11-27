@@ -22,11 +22,16 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from privymed.detectors.base import trim_boundaries
+from privymed.detectors.base import strip_leading_title, trim_boundaries
 from privymed.schema import EntityType, Span
 
 _TYPES = {t.value for t in EntityType}
-_LEADING_TITLE = re.compile(r"(?:(?:dr|prof|mr|mrs|ms|miss)\b\.?\s+)+", re.IGNORECASE)
+_SPACE = re.compile(r"\s+")
+
+
+def _squash(s: str) -> str:
+    """Case- and whitespace-insensitive form, used only to classify near misses."""
+    return _SPACE.sub(" ", s).strip().lower()
 
 
 @dataclass
@@ -36,7 +41,9 @@ class MappingStats:
     documents: int = 0
     parse_failures: int = 0  # response was not valid JSON matching the schema
     mentions: int = 0  # entity objects returned
-    hallucinated: int = 0  # returned text not found in the document
+    hallucinated: int = 0  # returned text not in the document even ignoring case/whitespace
+    near_miss: int = 0  # found only case-/whitespace-insensitively (not mapped)
+    truncated: int = 0  # generation stopped for a reason other than "stop" (e.g. length cap)
     invalid_type: int = 0  # type outside the 9-type schema
     type_conflicts: int = 0  # same text returned with different types
     occurrences: int = 0  # spans produced after mapping
@@ -106,17 +113,18 @@ def map_mentions(
             continue  # already mapped (all occurrences)
         starts = _occurrences(text, needle)
         if not starts:
-            stats.hallucinated += 1
+            # Not found exactly. Distinguish "present but differently cased / spaced" (near
+            # miss) from fabricated text (hallucination). Neither is mapped (conservative).
+            if _occurrences(_squash(text), _squash(needle)):  # whole-word rule still applies
+                stats.near_miss += 1
+            else:
+                stats.hallucinated += 1
             continue
         first_type[needle] = m.label
         for s in starts:
             a, b = trim_boundaries(text, s, s + len(needle))
-            if m.label in ("PATIENT", "STAFF"):
-                # Guide: titles are not part of a name. Qwen kept "Dr." in 40 of 63 dev STAFF
-                # mentions despite the instruction; same normalisation as the Presidio baseline.
-                title = _LEADING_TITLE.match(text, a, b)
-                if title:
-                    a = title.end()
+            if m.label in ("PATIENT", "STAFF"):  # guide: titles are not part of a name
+                a = strip_leading_title(text, a, b)
             if b > a:
                 candidates.append(Span(start=a, end=b, label=EntityType(m.label), source=source))
     candidates.sort(key=lambda s: (-(s.end - s.start), s.start))

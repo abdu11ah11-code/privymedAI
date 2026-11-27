@@ -49,9 +49,28 @@ def test_boundaries_trimmed_and_parentheses_kept() -> None:
     assert spans == [("(042) 35761234", PH)]
 
 
-def test_case_sensitive_matching() -> None:
+def test_case_mismatch_is_a_near_miss_not_a_hallucination() -> None:
+    """Review M5-10: present-but-differently-cased text is not fabricated; still not mapped."""
     spans, stats = found("AYESHA KHAN", [Mention("Ayesha Khan", "PATIENT")])
-    assert spans == [] and stats.hallucinated == 1
+    assert spans == [] and stats.near_miss == 1 and stats.hallucinated == 0
+
+
+def test_whitespace_difference_is_a_near_miss() -> None:
+    spans, stats = found("Ayesha\nKhan arrived", [Mention("Ayesha Khan", "PATIENT")])
+    assert spans == [] and stats.near_miss == 1 and stats.hallucinated == 0
+
+
+@pytest.mark.parametrize("text", ["Drew Barrett", "Patience Ali", "Missy Khan"])
+def test_title_helper_keeps_names_that_start_like_titles(text: str) -> None:
+    spans, _ = found(f"Seen by {text}.", [Mention(text, "STAFF")])
+    assert spans == [(text, ST)]
+
+
+def test_title_helper_strips_unspaced_and_role_titles() -> None:
+    text = "Seen by Dr.Imran Ali and Nurse Ayesha Khan."
+    mentions = [Mention("Dr.Imran Ali", "STAFF"), Mention("Nurse Ayesha Khan", "STAFF")]
+    spans, _ = found(text, mentions)
+    assert spans == [("Imran Ali", ST), ("Ayesha Khan", ST)]
 
 
 @pytest.mark.parametrize(

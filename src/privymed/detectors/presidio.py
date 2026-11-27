@@ -41,7 +41,7 @@ import re
 import threading
 from typing import TYPE_CHECKING, Any
 
-from privymed.detectors.base import Detector, trim_boundaries
+from privymed.detectors.base import Detector, strip_leading_title, trim_boundaries
 from privymed.detectors.cues import ID_KEYWORDS, STAFF_CUES, alternation
 from privymed.schema import EntityType, Span
 
@@ -61,9 +61,6 @@ ENTITY_MAP: dict[str, EntityType] = {
 }
 REQUESTED = tuple(ENTITY_MAP)
 
-_LEADING_TITLE = re.compile(
-    r"^(?:(?:patient|pt|name|dr|prof|mr|mrs|ms|miss|sister|nurse)\b\.?\s*)+", re.IGNORECASE
-)
 _STAFF_CUE = re.compile(rf"(?:\b(?:dr|prof)\.?|\b{alternation(STAFF_CUES)})\s*:?\s*$", re.I)
 _MONTH = re.compile(r"(?i)\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b")
 _TIME_ONLY = re.compile(r"(?i)^\d{1,2}[:.]\d{2}(?:\s?[ap]\.?m\.?)?$")
@@ -201,9 +198,7 @@ class PresidioDetector(Detector):
         if label is None:
             return None
         if entity == "PERSON":
-            m = _LEADING_TITLE.match(text[start:end])
-            if m:
-                start += m.end()
+            start = strip_leading_title(text, start, end)
         start, end = trim_boundaries(text, start, end)
         if end <= start:
             return None

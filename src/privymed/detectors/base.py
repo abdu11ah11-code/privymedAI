@@ -8,11 +8,26 @@ and the API depend only on this interface.
 from __future__ import annotations
 
 import inspect
+import re
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any, ClassVar
 
 from privymed.schema import GOLD_SOURCE, Span, span_sort_key, validate_spans_against_text
+
+# Titles and role words that precede a name but are not part of it (annotation guide).
+# Shared by every detector that strips them (review M5-5: Presidio and the LLM mapping had
+# two different lists). "\b" keeps names such as "Drew" or "Patience" intact.
+_LEADING_TITLE = re.compile(
+    r"(?:(?:patient|pt|name|dr|prof|mr|mrs|ms|miss|sister|nurse)\b\.?\s*)+", re.IGNORECASE
+)
+
+
+def strip_leading_title(text: str, start: int, end: int) -> int:
+    """Return the new start of a name span after skipping leading titles / role words."""
+    m = _LEADING_TITLE.match(text, start, end)
+    return m.end() if m else start
+
 
 _EDGE_PUNCT = ".,;:="  # "=" ends field labels ("MRN=...", guide) and never belongs to an entity
 

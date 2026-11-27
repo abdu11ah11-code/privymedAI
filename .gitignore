@@ -56,6 +56,9 @@ models/*
 *.gguf
 checkpoints/
 
+# Raw model outputs (regenerable; may be large)
+reports/eval/raw/
+
 # Experiment tracker run directories (summaries go in reports/ deliberately)
 runs/
 wandb/

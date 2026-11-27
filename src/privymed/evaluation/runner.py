@@ -29,6 +29,7 @@ from privymed.logging_utils import get_logger, setup_logging
 from privymed.schema import Document, Span
 
 log = get_logger(__name__)
+RAW_DIR = "reports/eval/raw"  # git-ignored raw model outputs
 LATENCY_SAMPLE = 100  # documents timed one at a time for batch-capable systems
 DEV_SPLITS = frozenset({"train", "dev"})  # allowlist: anything else needs --final
 MANIFEST_DIR = "data/manifests"  # every frozen manifest here has its test files guarded
@@ -61,9 +62,14 @@ def _transformer(**params: float | str) -> Detector:
 def _llm(**params: float | str) -> Detector:
     from privymed.detectors.llm import DEFAULT_MODEL, LLMDetector
 
+    unknown = set(params) - {"model", "n_examples", "num_ctx", "seed"}
+    if unknown:  # review M5-8: unknown keys used to be silently ignored
+        raise ValueError(f"unknown llm params: {sorted(unknown)}")
     return LLMDetector(
         model=str(params.get("model", DEFAULT_MODEL)),
         n_examples=int(params.get("n_examples", 3)),
+        num_ctx=int(params.get("num_ctx", 8192)),
+        seed=int(params.get("seed", 0)),
     )
 
 
@@ -185,6 +191,27 @@ def run_detector(
     return preds, latency
 
 
+def _write_raw_outputs(detector: Detector, docs: Sequence[Document], root: Path, name: str) -> None:
+    """Save raw model responses (git-ignored) for error analysis without a re-run."""
+    raw = getattr(detector, "raw_outputs", None)
+    if not raw:
+        return
+    from privymed.detectors.llm import LLMDetector, text_key, write_prompt_preview
+
+    out_dir = root / RAW_DIR
+    out_dir.mkdir(parents=True, exist_ok=True)
+    lines = []
+    for doc in docs:
+        entry = raw.get(text_key(doc.text))
+        if entry is not None:
+            lines.append(json.dumps({"doc_id": doc.doc_id, **entry}))
+    (out_dir / f"{name}.jsonl").write_text(
+        "".join(line + "\n" for line in lines), encoding="utf-8", newline="\n"
+    )
+    if isinstance(detector, LLMDetector):
+        write_prompt_preview(out_dir / f"{name}_prompt.txt", detector)
+
+
 def evaluate_system(
     system: str,
     split: str,
@@ -209,6 +236,7 @@ def evaluate_system(
     load_ms = (time.perf_counter() - load_t0) * 1000
     preds, latency = run_detector(detector, docs)
     result = evaluate(docs, preds)
+    _write_raw_outputs(detector, docs, root, f"{system}_{manifest['version']}_{split}")
     batched = getattr(detector, "prefers_batch", False)
     total_s = latency.sum() / 1000  # throughput comes from the scored run
     if batched:

@@ -227,7 +227,12 @@ class EvalResult:
         return {"precision": ci(p), "recall": ci(r), "f1": ci(f), "leak_rate": ci(lr)}
 
     def summary(self, bootstrap: bool = True) -> dict[str, object]:
-        out: dict[str, object] = {"n_docs": self.n_docs, "leak_rate": round(self.leak_rate, 4)}
+        out: dict[str, object] = {
+            "n_docs": self.n_docs,
+            "leak_rate": round(self.leak_rate, 4),
+            "leaked_chars": self.leaked_chars,  # exact counts (review M5-7: rate was rounded)
+            "gold_chars": self.gold_chars,
+        }
         for mode in MODES:
             block: dict[str, object] = {
                 "micro": self.micro(mode).as_dict(),

@@ -79,7 +79,7 @@ def test_detector_maps_fake_response_and_counts_stats(monkeypatch: pytest.Monkey
             {"text": "Nobody", "type": "PATIENT"},  # hallucination
         ]
     }
-    monkeypatch.setattr(det, "_chat", lambda text: json.dumps(reply))
+    monkeypatch.setattr(det, "_chat", lambda text: (json.dumps(reply), "stop"))
     text = "Patient Ayesha Khan seen by Dr. Imran."
     spans = det.detect(text)
     assert [(text[s.start : s.end], s.label) for s in spans] == [
@@ -93,5 +93,59 @@ def test_detector_maps_fake_response_and_counts_stats(monkeypatch: pytest.Monkey
 @needs_data
 def test_detector_counts_parse_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     det = LLMDetector()
-    monkeypatch.setattr(det, "_chat", lambda text: "Sure! Here are the entities: Ayesha")
+    monkeypatch.setattr(det, "_chat", lambda text: ("Sure! Here are the entities: Ayesha", "stop"))
     assert det.detect("Ayesha") == [] and det.stats.parse_failures == 1
+
+
+@needs_data
+def test_raw_outputs_kept_and_truncation_counted(monkeypatch: pytest.MonkeyPatch) -> None:
+    from privymed.detectors.llm import text_key
+
+    det = LLMDetector()
+    monkeypatch.setattr(det, "_chat", lambda text: ('{"entities": []}', "length"))
+    det.detect("No PII here.")
+    assert det.raw_outputs[text_key("No PII here.")]["done_reason"] == "length"
+    assert det.stats.truncated == 1
+
+
+@needs_data
+def test_connection_failure_aborts_instead_of_empty_prediction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import urllib.error
+
+    det = LLMDetector()
+
+    def boom(text: str) -> tuple[str, str]:
+        raise urllib.error.URLError("connection refused")
+
+    monkeypatch.setattr(det, "_chat", boom)
+    with pytest.raises(RuntimeError, match="Ollama request failed"):
+        det.detect("Patient Ayesha.")
+
+
+@needs_data
+def test_few_shot_examples_use_distinct_families() -> None:
+    from privymed.llm.prompt import _families
+
+    examples = select_examples(read_documents(TRAIN))
+    fams = [_families(e) for e in examples]
+    assert all(not (a & b) for i, a in enumerate(fams) for b in fams[i + 1 :])
+
+
+@needs_data
+def test_runner_resets_stats_after_warmup(monkeypatch: pytest.MonkeyPatch) -> None:
+    from privymed.evaluation.runner import run_detector
+
+    det = LLMDetector()
+    monkeypatch.setattr(det, "_chat", lambda text: ('{"entities": []}', "stop"))
+    docs = [Document(doc_id=str(i), text=f"note {i}") for i in range(8)]
+    run_detector(det, docs, warmup=5)
+    assert det.stats.documents == 8  # the 5 warm-up calls are not counted
+
+
+def test_unknown_llm_param_is_rejected() -> None:
+    from privymed.evaluation.runner import SYSTEMS
+
+    with pytest.raises(ValueError, match="unknown llm params"):
+        SYSTEMS["llm"](temperature=0.7)
