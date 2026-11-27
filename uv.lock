@@ -896,7 +896,7 @@ wheels = [
 name = "privymed"
 version = "0.1.0"
 source = { editable = "." }
-default-groups = ["baselines", "dev"]
+default-groups = ["baselines", "dev", "train"]
 dependencies = [
     { name = "datasketch" },
     { name = "faker" },

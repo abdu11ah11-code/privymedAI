@@ -1,0 +1,11 @@
+# E-003: DistilBERT (66M params), cased (capitalisation is a strong name cue).
+run_name: distilbert_s13
+model_name: distilbert-base-cased
+lr: 5.0e-5
+batch_size: 16
+epochs: 4
+patience: 2
+warmup_ratio: 0.1
+weight_decay: 0.01
+seed: 13
+precision: bf16

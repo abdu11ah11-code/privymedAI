@@ -1,0 +1,7 @@
+# Pipeline smoke test only (200 train docs, 1 epoch). Not an experiment.
+run_name: smoke_distilbert
+model_name: distilbert-base-cased
+max_train_docs: 200
+max_dev_docs: 100
+epochs: 1
+batch_size: 16

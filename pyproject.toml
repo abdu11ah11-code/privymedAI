@@ -19,6 +19,7 @@ dependencies = [
 privymed-generate = "privymed.data_generation.dataset:main"
 privymed-validate = "privymed.validation:main"
 privymed-eval = "privymed.evaluation.runner:main"
+privymed-train = "privymed.training.train:main"
 
 # Heavy, milestone-specific dependencies are added as groups when their
 # milestone starts (data, baselines, train, llm, onnx, api) so the base
@@ -46,7 +47,7 @@ train = [
 
 [tool.uv]
 # Plain `uv sync` installs everything needed to run the baselines and their tests.
-default-groups = ["dev", "baselines"]
+default-groups = ["dev", "baselines", "train"]
 
 # PyTorch CUDA 12.8 wheels (driver 591.62 supports CUDA <= 13.1). Explicit index: only torch uses it.
 [[tool.uv.index]]
