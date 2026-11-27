@@ -273,6 +273,7 @@ def train(
         "train_windows": len(train_windows),
         "alignment": {
             "straddling": train_rep.stats.straddling,
+            "merged_prefix": train_rep.stats.merged_prefix,
             "unlabelled_spans": train_rep.stats.unlabelled_spans,
         },
         "best_epoch": best_epoch,

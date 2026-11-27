@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Added — Milestone 4
+- CUDA training environment (`train` group); subword alignment (label-all-subwords, merged-prefix rule, `clean_offsets`); windowed encoding and inference; `privymed-train` (bf16 autocast, fp32 master weights, dev span-F1 selection, run records); `TransformerDetector`; `scripts/run_m4_grid.sh`.
+- Experiments E-003..E-005 (3 models × 3 seeds); RoBERTa primary, DeBERTa pre-registered variant (`configs/selected_models.yaml`).
+
+### Fixed — Milestone 4 (incl. independent review)
+- DeBERTa: fp16-stored weights loaded as fp32 (NaN loss), batch 4×4 (GPU memory spill), SentencePiece offsets.
+- RoBERTa merged-prefix tokens labelled and trimmed (322 train spans were unrepresentable); RoBERTa retrained.
+- fp32 inference (bf16 predictions depended on document order / batch size); exact reload parity.
+- Run records: package versions, data hashes, weight dtype, merged-prefix counts; grid stops on failure; per-document latency sampling.
+
 ### Fixed — Milestone 3 independent review
 - Removed 9 rule cues absent from train/dev (5 from test_id templates); shared `detectors/cues.py` with a train/dev occurrence lint test.
 - Presidio keeps balanced parentheses (PHONE strict F1 0.917 → 0.980 on dev); docstring discloses shared cue logic.

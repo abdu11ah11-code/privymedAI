@@ -9,7 +9,7 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
 | 2 | Synthetic dataset engine | DONE (v1 frozen) | ≥15 template families, ≥8 doc types, validator 0 errors, family-level splits, leakage check passes, stats report |
 | 2b | OOD test set | NOT STARTED | 150–300 LLM-written notes, every annotation manually verified |
 | 3 | Baselines + span evaluator | DONE | Regex + Presidio implement `Detector`; evaluator matches hand-computed cases; seqeval cross-check |
-| 4 | Transformer training | IN PROGRESS (review pending) | 3 candidates × 3 seeds on dev; checkpoint reload reproduces dev score; experiments logged |
+| 4 | Transformer training | DONE | 3 candidates × 3 seeds on dev; checkpoint reload reproduces dev score; experiments logged |
 | 5 | Qwen LLM baseline | NOT STARTED | Prompt + schema documented; parse/hallucination failures counted; same docs and evaluator |
 | 6 | Error analysis → hybrid | NOT STARTED | Error taxonomy on dev; each fusion rule justified by a dev finding; ablations |
 | 7 | Redaction engine | NOT STARTED | Mask / label / surrogate modes; non-PII text preserved byte-for-byte (property tests) |
@@ -75,5 +75,5 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
 - [x] 4.2 Subword statistics (train/dev): mean ~175 tokens/doc; windows 512/64; tokenizer offset audit
 - [x] 4.3 Span <-> subword alignment (label-all-subwords) with real-tokenizer round-trip tests
 - [x] 4.4 Training pipeline (bf16, fp32 master weights, dev span-F1 selection, run records) and windowed inference
-- [x] 4.5 Grid 3 models x 3 seeds -> RoBERTa selected (dev strict F1 0.9912 +/- 0.0010); checkpoint reload reproduces dev score exactly
-- [ ] Independent review -> fixes -> commit -> push
+- [x] 4.5 Grid 3 models x 3 seeds -> RoBERTa primary (dev strict F1 0.9852 +/- 0.0036, `roberta_s7`), DeBERTa pre-registered accuracy variant (0.9931 +/- 0.0069, `deberta_s42`); configs/selected_models.yaml
+- [x] Independent review: 0 critical, 3 important (RoBERTa merged-prefix labels, bf16 order dependence, epoch-cap / over-fitting claim), 9 minor - all fixed; RoBERTa retrained, all 9 checkpoints re-scored with fp32 inference

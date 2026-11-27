@@ -1,6 +1,6 @@
 # Project status
 
-_Last updated: 2026-11-27 (end of Milestone 3)_
+_Last updated: 2026-11-27 (end of Milestone 4)_
 
 ## Environment
 - Windows 11 Pro · Ryzen 7 170 (8C/16T) · 15.3 GB RAM · RTX 4050 Laptop 6 GB (driver 591.62, CUDA 13.1 capable) · 145 GB free
@@ -20,6 +20,11 @@ _Last updated: 2026-11-27 (end of Milestone 3)_
   - `privymed-eval`: manifest verification, test-split allowlist + hash guard, dev-only sweeps, provenance (git dirty state, packages).
   - Baselines on **dev** (E-001, E-002, clean commit `a5c620b`): regex strict F1 0.980 [0.975, 0.984], leak 2.30%, ~0.4 ms/doc; Presidio strict F1 0.731 [0.722, 0.740], overlap 0.903, leak 13.48%, ~25 ms/doc.
   - Independent review: 1 critical (9 rule cues absent from train/dev, 5 from test templates — removed, now lint-tested), 5 important, minors — all fixed.
+
+- **Milestone 4** — transformer token classifiers (dev only):
+  - 3 models × 3 seeds on the RTX 4050 (bf16 training, fp32 master weights, fp32 inference). Dev strict F1: DistilBERT 0.9118 ± 0.0108, RoBERTa 0.9852 ± 0.0036, DeBERTa-v3 0.9931 ± 0.0069.
+  - **RoBERTa primary** (`roberta_s7`, median seed: dev strict F1 0.984, 13 leaked characters in 9 of 600 docs), **DeBERTa pre-registered accuracy variant** (`deberta_s42`), in `configs/selected_models.yaml`.
+  - Independent review: 0 critical, 3 important, 9 minor — all fixed; RoBERTa retrained after the merged-prefix label fix.
 
 ## Dataset status — v1 (frozen)
 | Split | Docs | Spans | Families | SHA-256 (prefix) |
@@ -41,14 +46,14 @@ _Last updated: 2026-11-27 (end of Milestone 3)_
 - Ages > 89 are not annotated (out of schema).
 
 ## Tests
-- 572 passed, 3 skipped (entity-free families exempt from the ≥3-types rule). ruff + mypy --strict clean.
+- 593 passed, 3 skipped (entity-free families exempt from the ≥3-types rule). ruff + mypy --strict clean.
 
 ## Model status
-- Baselines evaluated on dev only (regex, Presidio). No learned models trained yet. Test splits untouched.
+- Regex, Presidio and 9 transformer checkpoints evaluated on dev only. Checkpoints in `models/` (git-ignored; reproducible with `bash scripts/run_m4_grid.sh`). Test splits untouched.
 
 ## Deployment status
 - NOT IMPLEMENTED.
 
 ## Next task
-- **Milestone 2b:** test-OOD set — LLM-written notes, pre-labelled by the baselines, corrected by hand. Requires Ollama + a Qwen model (~3 GB).
-- **Milestone 4:** BERT-family token classifier training on train, model selection on dev.
+- **Milestone 5:** local Qwen LLM baseline via Ollama (~3 GB download): JSON-schema prompting, string-to-offset mapping, parse/hallucination accounting, scored on dev.
+- **Milestone 2b:** test-OOD set (Qwen-written notes, pre-labelled by regex/Presidio/RoBERTa, corrected by the owner).

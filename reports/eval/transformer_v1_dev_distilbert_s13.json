@@ -1,0 +1,473 @@
+{
+  "system": "transformer",
+  "dataset_version": "v1",
+  "split": "dev",
+  "params": {
+    "checkpoint": "models/distilbert_s13"
+  },
+  "detector_config": {
+    "checkpoint": "C:/PrivMed AI/models/distilbert_s13",
+    "run_name": "distilbert_s13",
+    "model_name": "distilbert-base-cased",
+    "train_git": {
+      "commit": "c8ed4b8",
+      "dirty": false
+    },
+    "device": "cuda",
+    "inference": {
+      "dtype": "float32",
+      "max_length": 512,
+      "stride": 64,
+      "batch_size": 32
+    }
+  },
+  "git": {
+    "commit": "50bf43e",
+    "dirty": false
+  },
+  "packages": {
+    "privymed": "0.1.0",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "presidio-analyzer": "2.2.362",
+    "spacy": "3.8.18",
+    "en-core-web-lg": "3.8.0",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.24.1",
+    "tokenizers": "0.23.3",
+    "safetensors": "0.8.0"
+  },
+  "environment": {
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "processor": "AMD64 Family 25 Model 68 Stepping 1, AuthenticAMD"
+  },
+  "latency_mode": "per_document_sample_100",
+  "latency_ms_per_doc": {
+    "mean": 18.595,
+    "p50": 15.8,
+    "p95": 36.165
+  },
+  "throughput_mode": "whole_split_batched",
+  "throughput": {
+    "docs_per_s": 53.0,
+    "chars_per_s": 24923
+  },
+  "first_call_ms": 7801.8,
+  "metrics": {
+    "n_docs": 600,
+    "leak_rate": 0.0044,
+    "strict": {
+      "micro": {
+        "tp": 6422,
+        "fp": 918,
+        "fn": 413,
+        "precision": 0.8749,
+        "recall": 0.9396,
+        "f1": 0.9061
+      },
+      "macro_f1": 0.9252,
+      "per_label": {
+        "PATIENT": {
+          "tp": 1041,
+          "fp": 345,
+          "fn": 219,
+          "precision": 0.7511,
+          "recall": 0.8262,
+          "f1": 0.7868
+        },
+        "STAFF": {
+          "tp": 764,
+          "fp": 256,
+          "fn": 74,
+          "precision": 0.749,
+          "recall": 0.9117,
+          "f1": 0.8224
+        },
+        "DATE": {
+          "tp": 1385,
+          "fp": 4,
+          "fn": 1,
+          "precision": 0.9971,
+          "recall": 0.9993,
+          "f1": 0.9982
+        },
+        "PHONE": {
+          "tp": 1038,
+          "fp": 6,
+          "fn": 3,
+          "precision": 0.9943,
+          "recall": 0.9971,
+          "f1": 0.9957
+        },
+        "EMAIL": {
+          "tp": 203,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "CNIC": {
+          "tp": 533,
+          "fp": 5,
+          "fn": 1,
+          "precision": 0.9907,
+          "recall": 0.9981,
+          "f1": 0.9944
+        },
+        "ID": {
+          "tp": 202,
+          "fp": 11,
+          "fn": 1,
+          "precision": 0.9484,
+          "recall": 0.9951,
+          "f1": 0.9712
+        },
+        "ADDRESS": {
+          "tp": 400,
+          "fp": 44,
+          "fn": 22,
+          "precision": 0.9009,
+          "recall": 0.9479,
+          "f1": 0.9238
+        },
+        "HOSPITAL": {
+          "tp": 856,
+          "fp": 247,
+          "fn": 92,
+          "precision": 0.7761,
+          "recall": 0.903,
+          "f1": 0.8347
+        }
+      },
+      "ci95": {
+        "precision": [
+          0.8641,
+          0.8847
+        ],
+        "recall": [
+          0.9333,
+          0.9452
+        ],
+        "f1": [
+          0.8981,
+          0.9136
+        ],
+        "leak_rate": [
+          0.0032,
+          0.006
+        ]
+      }
+    },
+    "boundary": {
+      "micro": {
+        "tp": 6603,
+        "fp": 737,
+        "fn": 232,
+        "precision": 0.8996,
+        "recall": 0.9661,
+        "f1": 0.9316
+      },
+      "macro_f1": 0.9441,
+      "per_label": {
+        "PATIENT": {
+          "tp": 1165,
+          "fp": 292,
+          "fn": 95,
+          "precision": 0.7996,
+          "recall": 0.9246,
+          "f1": 0.8576
+        },
+        "STAFF": {
+          "tp": 793,
+          "fp": 133,
+          "fn": 45,
+          "precision": 0.8564,
+          "recall": 0.9463,
+          "f1": 0.8991
+        },
+        "DATE": {
+          "tp": 1385,
+          "fp": 4,
+          "fn": 1,
+          "precision": 0.9971,
+          "recall": 0.9993,
+          "f1": 0.9982
+        },
+        "PHONE": {
+          "tp": 1038,
+          "fp": 5,
+          "fn": 3,
+          "precision": 0.9952,
+          "recall": 0.9971,
+          "f1": 0.9962
+        },
+        "EMAIL": {
+          "tp": 203,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "CNIC": {
+          "tp": 533,
+          "fp": 5,
+          "fn": 1,
+          "precision": 0.9907,
+          "recall": 0.9981,
+          "f1": 0.9944
+        },
+        "ID": {
+          "tp": 203,
+          "fp": 11,
+          "fn": 0,
+          "precision": 0.9486,
+          "recall": 1.0,
+          "f1": 0.9736
+        },
+        "ADDRESS": {
+          "tp": 400,
+          "fp": 40,
+          "fn": 22,
+          "precision": 0.9091,
+          "recall": 0.9479,
+          "f1": 0.9281
+        },
+        "HOSPITAL": {
+          "tp": 883,
+          "fp": 247,
+          "fn": 65,
+          "precision": 0.7814,
+          "recall": 0.9314,
+          "f1": 0.8499
+        }
+      },
+      "ci95": {
+        "precision": [
+          0.8894,
+          0.9095
+        ],
+        "recall": [
+          0.9607,
+          0.9712
+        ],
+        "f1": [
+          0.924,
+          0.9389
+        ],
+        "leak_rate": [
+          0.0032,
+          0.006
+        ]
+      }
+    },
+    "partial": {
+      "micro": {
+        "tp": 6617,
+        "fp": 723,
+        "fn": 218,
+        "precision": 0.9015,
+        "recall": 0.9681,
+        "f1": 0.9336
+      },
+      "macro_f1": 0.948,
+      "per_label": {
+        "PATIENT": {
+          "tp": 1120,
+          "fp": 266,
+          "fn": 140,
+          "precision": 0.8081,
+          "recall": 0.8889,
+          "f1": 0.8466
+        },
+        "STAFF": {
+          "tp": 796,
+          "fp": 224,
+          "fn": 42,
+          "precision": 0.7804,
+          "recall": 0.9499,
+          "f1": 0.8568
+        },
+        "DATE": {
+          "tp": 1386,
+          "fp": 3,
+          "fn": 0,
+          "precision": 0.9978,
+          "recall": 1.0,
+          "f1": 0.9989
+        },
+        "PHONE": {
+          "tp": 1041,
+          "fp": 3,
+          "fn": 0,
+          "precision": 0.9971,
+          "recall": 1.0,
+          "f1": 0.9986
+        },
+        "EMAIL": {
+          "tp": 203,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "CNIC": {
+          "tp": 534,
+          "fp": 4,
+          "fn": 0,
+          "precision": 0.9926,
+          "recall": 1.0,
+          "f1": 0.9963
+        },
+        "ID": {
+          "tp": 202,
+          "fp": 11,
+          "fn": 1,
+          "precision": 0.9484,
+          "recall": 0.9951,
+          "f1": 0.9712
+        },
+        "ADDRESS": {
+          "tp": 421,
+          "fp": 23,
+          "fn": 1,
+          "precision": 0.9482,
+          "recall": 0.9976,
+          "f1": 0.9723
+        },
+        "HOSPITAL": {
+          "tp": 914,
+          "fp": 189,
+          "fn": 34,
+          "precision": 0.8286,
+          "recall": 0.9641,
+          "f1": 0.8913
+        }
+      },
+      "ci95": {
+        "precision": [
+          0.8934,
+          0.909
+        ],
+        "recall": [
+          0.9644,
+          0.9716
+        ],
+        "f1": [
+          0.9282,
+          0.9386
+        ],
+        "leak_rate": [
+          0.0032,
+          0.006
+        ]
+      }
+    },
+    "overlap": {
+      "micro": {
+        "tp": 6817,
+        "fp": 523,
+        "fn": 18,
+        "precision": 0.9287,
+        "recall": 0.9974,
+        "f1": 0.9618
+      },
+      "macro_f1": 0.9694,
+      "per_label": {
+        "PATIENT": {
+          "tp": 1257,
+          "fp": 229,
+          "fn": 3,
+          "precision": 0.8459,
+          "recall": 0.9976,
+          "f1": 0.9155
+        },
+        "STAFF": {
+          "tp": 828,
+          "fp": 66,
+          "fn": 10,
+          "precision": 0.9262,
+          "recall": 0.9881,
+          "f1": 0.9561
+        },
+        "DATE": {
+          "tp": 1386,
+          "fp": 3,
+          "fn": 0,
+          "precision": 0.9978,
+          "recall": 1.0,
+          "f1": 0.9989
+        },
+        "PHONE": {
+          "tp": 1041,
+          "fp": 2,
+          "fn": 0,
+          "precision": 0.9981,
+          "recall": 1.0,
+          "f1": 0.999
+        },
+        "EMAIL": {
+          "tp": 203,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "CNIC": {
+          "tp": 534,
+          "fp": 4,
+          "fn": 0,
+          "precision": 0.9926,
+          "recall": 1.0,
+          "f1": 0.9963
+        },
+        "ID": {
+          "tp": 203,
+          "fp": 11,
+          "fn": 0,
+          "precision": 0.9486,
+          "recall": 1.0,
+          "f1": 0.9736
+        },
+        "ADDRESS": {
+          "tp": 422,
+          "fp": 18,
+          "fn": 0,
+          "precision": 0.9591,
+          "recall": 1.0,
+          "f1": 0.9791
+        },
+        "HOSPITAL": {
+          "tp": 943,
+          "fp": 190,
+          "fn": 5,
+          "precision": 0.8323,
+          "recall": 0.9947,
+          "f1": 0.9063
+        }
+      },
+      "ci95": {
+        "precision": [
+          0.9212,
+          0.9358
+        ],
+        "recall": [
+          0.996,
+          0.9986
+        ],
+        "f1": [
+          0.9579,
+          0.9657
+        ],
+        "leak_rate": [
+          0.0032,
+          0.006
+        ]
+      }
+    }
+  }
+}

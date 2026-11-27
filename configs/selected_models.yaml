@@ -1,0 +1,11 @@
+# Pre-registered transformer checkpoints for the Milestone 8 final evaluation.
+# Decided on dev only (E-003..E-005), with the owner, on 2026-11-27, before any test data was
+# seen. Do not change after looking at test results.
+primary:
+  name: roberta-base
+  run: roberta_s7          # median dev seed (0.9838) of 0.9825 / 0.9838 / 0.9892
+  checkpoint: models/roberta_s7
+variants:
+  - name: deberta-v3-base  # accuracy variant
+    run: deberta_s42       # median dev seed (0.9945) of 0.9856 / 0.9945 / 0.9991
+    checkpoint: models/deberta_s42
