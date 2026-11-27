@@ -1,9 +1,11 @@
 # E-005: DeBERTa-v3-base (184M). bf16 (fp16 is numerically unstable for DeBERTa-v3).
+# Batch 4 x accum 4 (effective 16, same as the other models): batch 8 filled the 6 GB GPU
+# and Windows spilled into system RAM (no epoch finished in 46 min, GPU at ~30 W).
 run_name: deberta_s13
 model_name: microsoft/deberta-v3-base
 lr: 3.0e-5
-batch_size: 8
-grad_accum: 2
+batch_size: 4
+grad_accum: 4
 epochs: 4
 patience: 2
 warmup_ratio: 0.1

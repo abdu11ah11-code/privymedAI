@@ -41,6 +41,7 @@ from privymed.training.inference import TokenClassifierRunner
 
 log = get_logger(__name__)
 Precision = Literal["bf16", "fp32"]
+LOG_EVERY = 50  # batches between progress lines
 
 
 class TrainConfig(BaseModel):
@@ -203,6 +204,17 @@ def train(
                 optimizer.step()
                 scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
+            if step % LOG_EVERY == 0:
+                # Progress + ETA + GPU memory: a near-full GPU on Windows silently spills
+                # into system RAM and slows training 10-50x (DeBERTa batch 8 did).
+                elapsed = time.perf_counter() - t_epoch
+                eta = elapsed / step * (len(batches) - step)
+                mem = torch.cuda.max_memory_reserved() / 2**30 if device.type == "cuda" else 0.0
+                recent = float(np.mean(losses[-LOG_EVERY:]))
+                log.info(
+                    "epoch %d step %d/%d loss=%.4f %.0fs elapsed, ETA %.0fs, gpu %.2f GiB",
+                    epoch, step, len(batches), recent, elapsed, eta, mem,
+                )  # fmt: skip
         dev_loss = _dev_loss(model, tokenizer, dev_windows, cfg, device)
         preds = runner.predict([d.text for d in dev_docs])
         res = evaluate(dev_docs, {d.doc_id: p for d, p in zip(dev_docs, preds, strict=True)})
