@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Added — Milestone 3 (in progress)
+- 3.1 `privymed.evaluation`: four matching modes, one-to-one greedy matching, leak rate, document bootstrap CIs; `docs/EVALUATION.md`; seqeval cross-check test.
+- 3.2 `RegexDetector` baseline with unit tests for guide examples and hard negatives.
+- 3.3 `PresidioDetector` (Presidio + spaCy `en_core_web_lg`) configured for the schema; custom CNIC and record-ID recognizers; `baselines` dependency group.
+- 3.4 `privymed-eval` CLI: manifest verification, test-split guard, `--param`, dev-only `--sweep`, latency and throughput reporting.
+- Experiments E-001 (regex) and E-002 (Presidio) on dev.
+
 ### Added — Milestone 2 (in progress)
 - 2.1 `EntityFactory`: seeded generators for all 9 entity types with per-value format tags; annotation guide.
 - 2.2 Template engine (`TextBuilder`, `NoteContext`, `TemplateFamily`, `generate_document`): labels correct by construction, consistent per-note cast, DOB/age/date-order coherence, non-annotated distractor fillers, SHA-256 per-document seeds.

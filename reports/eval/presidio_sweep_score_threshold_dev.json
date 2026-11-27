@@ -1,0 +1,85 @@
+{
+  "system": "presidio",
+  "split": "dev",
+  "param": "score_threshold",
+  "rows": [
+    {
+      "score_threshold": 0.3,
+      "strict": {
+        "tp": 5129,
+        "fp": 2241,
+        "fn": 1706,
+        "precision": 0.6959,
+        "recall": 0.7504,
+        "f1": 0.7221
+      },
+      "overlap_f1": 0.9026,
+      "leak_rate": 0.1354
+    },
+    {
+      "score_threshold": 0.4,
+      "strict": {
+        "tp": 5129,
+        "fp": 2241,
+        "fn": 1706,
+        "precision": 0.6959,
+        "recall": 0.7504,
+        "f1": 0.7221
+      },
+      "overlap_f1": 0.9026,
+      "leak_rate": 0.1354
+    },
+    {
+      "score_threshold": 0.5,
+      "strict": {
+        "tp": 4485,
+        "fp": 2297,
+        "fn": 2350,
+        "precision": 0.6613,
+        "recall": 0.6562,
+        "f1": 0.6587
+      },
+      "overlap_f1": 0.8553,
+      "leak_rate": 0.2129
+    },
+    {
+      "score_threshold": 0.6,
+      "strict": {
+        "tp": 4483,
+        "fp": 2296,
+        "fn": 2352,
+        "precision": 0.6613,
+        "recall": 0.6559,
+        "f1": 0.6586
+      },
+      "overlap_f1": 0.8553,
+      "leak_rate": 0.2131
+    },
+    {
+      "score_threshold": 0.7,
+      "strict": {
+        "tp": 4097,
+        "fp": 2303,
+        "fn": 2738,
+        "precision": 0.6402,
+        "recall": 0.5994,
+        "f1": 0.6191
+      },
+      "overlap_f1": 0.8225,
+      "leak_rate": 0.2492
+    }
+  ],
+  "best": {
+    "score_threshold": 0.3,
+    "strict": {
+      "tp": 5129,
+      "fp": 2241,
+      "fn": 1706,
+      "precision": 0.6959,
+      "recall": 0.7504,
+      "f1": 0.7221
+    },
+    "overlap_f1": 0.9026,
+    "leak_rate": 0.1354
+  }
+}
