@@ -37,10 +37,26 @@ dev = [
     "types-PyYAML",
     "seqeval>=1.2.2",
 ]
+train = [
+    "protobuf>=7.36.2",
+    "sentencepiece>=0.2.3",
+    "torch>=2.11.0",
+    "transformers>=5.24.1",
+]
 
 [tool.uv]
 # Plain `uv sync` installs everything needed to run the baselines and their tests.
 default-groups = ["dev", "baselines"]
+
+# PyTorch CUDA 12.8 wheels (driver 591.62 supports CUDA <= 13.1). Explicit index: only torch uses it.
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu128" }]
+en-core-web-lg = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl" }
 
 [build-system]
 requires = ["hatchling"]
@@ -77,6 +93,3 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
 markers = ["slow: loads large models (spaCy en_core_web_lg); deselect with -m \"not slow\""]
-
-[tool.uv.sources]
-en-core-web-lg = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl" }

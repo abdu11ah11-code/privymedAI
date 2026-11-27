@@ -1,0 +1,92 @@
+{
+  "splits": [
+    "train",
+    "dev"
+  ],
+  "tokenizers": {
+    "distilbert-base-cased": {
+      "train": {
+        "documents": 4000,
+        "tokens_mean": 178.7,
+        "tokens_p50": 142,
+        "tokens_p95": 412,
+        "tokens_p99": 500,
+        "tokens_max": 848,
+        "docs_over_256": 817,
+        "docs_over_512": 34,
+        "straddling_tokens": 0,
+        "unlabelled_spans": 0,
+        "entity_token_share": 0.3573
+      },
+      "dev": {
+        "documents": 600,
+        "tokens_mean": 165.2,
+        "tokens_p50": 138,
+        "tokens_p95": 353,
+        "tokens_p99": 426,
+        "tokens_max": 640,
+        "docs_over_256": 122,
+        "docs_over_512": 3,
+        "straddling_tokens": 0,
+        "unlabelled_spans": 0,
+        "entity_token_share": 0.4452
+      }
+    },
+    "roberta-base": {
+      "train": {
+        "documents": 4000,
+        "tokens_mean": 174.5,
+        "tokens_p50": 139,
+        "tokens_p95": 404,
+        "tokens_p99": 483,
+        "tokens_max": 654,
+        "docs_over_256": 784,
+        "docs_over_512": 18,
+        "straddling_tokens": 323,
+        "unlabelled_spans": 0,
+        "entity_token_share": 0.3592
+      },
+      "dev": {
+        "documents": 600,
+        "tokens_mean": 159.6,
+        "tokens_p50": 131,
+        "tokens_p95": 342,
+        "tokens_p99": 418,
+        "tokens_max": 531,
+        "docs_over_256": 117,
+        "docs_over_512": 2,
+        "straddling_tokens": 0,
+        "unlabelled_spans": 0,
+        "entity_token_share": 0.4577
+      }
+    },
+    "microsoft/deberta-v3-base": {
+      "train": {
+        "documents": 4000,
+        "tokens_mean": 142.9,
+        "tokens_p50": 115,
+        "tokens_p95": 329,
+        "tokens_p99": 389,
+        "tokens_max": 472,
+        "docs_over_256": 528,
+        "docs_over_512": 0,
+        "straddling_tokens": 0,
+        "unlabelled_spans": 0,
+        "entity_token_share": 0.3501
+      },
+      "dev": {
+        "documents": 600,
+        "tokens_mean": 127.2,
+        "tokens_p50": 101,
+        "tokens_p95": 282,
+        "tokens_p99": 330,
+        "tokens_max": 374,
+        "docs_over_256": 56,
+        "docs_over_512": 0,
+        "straddling_tokens": 0,
+        "unlabelled_spans": 0,
+        "entity_token_share": 0.4454
+      }
+    }
+  }
+}
