@@ -1,0 +1,162 @@
+"""Run a detection system on a dataset split and write a reproducible evaluation report.
+
+Usage::
+
+    uv run privymed-eval --system regex --split dev
+
+Test splits are refused unless ``--final`` is given (Milestone 8 only; CLAUDE.md
+rule 3), and even then the dataset manifest is verified first.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import platform
+import subprocess
+import time
+from collections.abc import Callable, Sequence
+from pathlib import Path
+
+import numpy as np
+
+from privymed.config import find_repo_root
+from privymed.data_generation.dataset import verify_manifest
+from privymed.detectors.base import Detector
+from privymed.evaluation.metrics import MODES, evaluate
+from privymed.io import read_documents
+from privymed.logging_utils import get_logger, setup_logging
+from privymed.schema import Document, Span
+
+log = get_logger(__name__)
+TEST_SPLITS = frozenset({"test_id", "test_ood"})
+
+
+def _regex() -> Detector:
+    from privymed.detectors.regex import RegexDetector
+
+    return RegexDetector()
+
+
+# System name -> factory. Imports are lazy so heavy systems load only when asked for.
+SYSTEMS: dict[str, Callable[[], Detector]] = {"regex": _regex}
+
+
+def register(name: str, factory: Callable[[], Detector]) -> None:
+    SYSTEMS[name] = factory
+
+
+def _git_commit(root: Path) -> str:
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return "unknown"
+
+
+def run_detector(
+    detector: Detector, docs: Sequence[Document], warmup: int = 5
+) -> tuple[dict[str, list[Span]], np.ndarray]:
+    """Predict every document; return predictions and per-document latency (ms)."""
+    for doc in docs[:warmup]:  # warm caches / lazy model loading outside the timed loop
+        detector.detect(doc.text)
+    preds: dict[str, list[Span]] = {}
+    latency = np.zeros(len(docs))
+    for i, doc in enumerate(docs):
+        t0 = time.perf_counter()
+        preds[doc.doc_id] = detector.detect(doc.text)
+        latency[i] = (time.perf_counter() - t0) * 1000
+    return preds, latency
+
+
+def evaluate_system(
+    system: str,
+    split: str,
+    manifest_path: Path,
+    root: Path,
+    final: bool = False,
+) -> dict[str, object]:
+    if split in TEST_SPLITS and not final:
+        raise PermissionError(
+            f"{split!r} is a frozen test split: only the Milestone 8 final evaluation may use it "
+            "(pass --final). Develop and tune on 'dev'."
+        )
+    verify_manifest(manifest_path, root=root)  # data must match the frozen manifest
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if split not in manifest["files"]:
+        raise KeyError(f"split {split!r} not in manifest")
+    docs = read_documents(root / manifest["files"][split]["path"])
+
+    detector = SYSTEMS[system]()
+    load_t0 = time.perf_counter()
+    detector.detect("warm-up")
+    load_ms = (time.perf_counter() - load_t0) * 1000
+    preds, latency = run_detector(detector, docs)
+    result = evaluate(docs, preds)
+    log.info("%s on %s: %d docs evaluated", system, split, len(docs))
+
+    total_s = latency.sum() / 1000
+    chars = sum(len(d.text) for d in docs)
+    return {
+        "system": system,
+        "dataset_version": manifest["version"],
+        "split": split,
+        "git_commit": _git_commit(root),
+        "environment": {
+            "python": platform.python_version(),
+            "platform": platform.platform(),
+            "processor": platform.processor(),
+        },
+        "latency_ms_per_doc": {
+            "mean": round(float(latency.mean()), 3),
+            "p50": round(float(np.percentile(latency, 50)), 3),
+            "p95": round(float(np.percentile(latency, 95)), 3),
+        },
+        "throughput": {
+            "docs_per_s": round(len(docs) / total_s, 1) if total_s else None,
+            "chars_per_s": round(chars / total_s) if total_s else None,
+        },
+        "first_call_ms": round(load_ms, 1),
+        "metrics": result.summary(bootstrap=True),
+    }
+
+
+def _print_summary(report: dict[str, object]) -> None:
+    metrics = report["metrics"]
+    assert isinstance(metrics, dict)
+    print(f"{report['system']} on {report['dataset_version']}/{report['split']}")
+    for mode in MODES:
+        block = metrics[mode]
+        m, ci = block["micro"], block["ci95"]["f1"]
+        print(
+            f"  {mode:<8} P={m['precision']:.3f} R={m['recall']:.3f} F1={m['f1']:.3f} "
+            f"[{ci[0]:.3f}, {ci[1]:.3f}]  macroF1={block['macro_f1']:.3f}"
+        )
+    print(f"  leak rate {metrics['leak_rate']:.3%}   latency {report['latency_ms_per_doc']}")
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Evaluate a PrivyMed detection system.")
+    parser.add_argument("--system", required=True, choices=sorted(SYSTEMS))
+    parser.add_argument("--split", default="dev")
+    parser.add_argument("--manifest", type=Path, default=Path("data/manifests/v1.json"))
+    parser.add_argument("--report-dir", type=Path, default=Path("reports/eval"))
+    parser.add_argument("--final", action="store_true", help="Milestone 8 only: allow test splits")
+    args = parser.parse_args(argv)
+    setup_logging("INFO")
+    root = find_repo_root()
+    report = evaluate_system(args.system, args.split, root / args.manifest, root, args.final)
+    out = root / args.report_dir / f"{args.system}_{report['dataset_version']}_{args.split}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8", newline="\n")
+    _print_summary(report)
+    print(f"  report: {out.relative_to(root).as_posix()}")
+
+
+if __name__ == "__main__":
+    main()
