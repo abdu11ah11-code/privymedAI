@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections import Counter
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -53,7 +54,7 @@ def encode_documents(
     """
     out: list[Encoded] = []
     report = EncodeReport()
-    agg = [0, 0, 0, 0]
+    agg: Counter[str] = Counter()  # summed by field name, so no field can be forgotten
     for doc in docs:
         enc = tokenizer(
             doc.text,
@@ -67,10 +68,8 @@ def encode_documents(
         n_tokens = 0
         for w in range(len(enc["input_ids"])):
             offsets = clean_offsets(doc.text, [tuple(o) for o in enc["offset_mapping"][w]])
-            labels, st = spans_to_labels(offsets, doc.spans)
-            agg[0] += st.tokens
-            agg[1] += st.entity_tokens
-            agg[2] += st.straddling
+            labels, st = spans_to_labels(offsets, doc.spans, text=doc.text)
+            agg.update({k: v for k, v in asdict(st).items() if k != "unlabelled_spans"})
             n_tokens = max(n_tokens, offsets[-2][1] if len(offsets) > 1 else 0)
             out.append(
                 Encoded(
@@ -84,12 +83,10 @@ def encode_documents(
             report.windows += 1
         full = tokenizer(doc.text, add_special_tokens=False, return_offsets_mapping=True)
         full_offsets = clean_offsets(doc.text, [tuple(o) for o in full["offset_mapping"]])
-        _, full_stats = spans_to_labels(full_offsets, doc.spans)
-        agg[3] += full_stats.unlabelled_spans
+        _, full_stats = spans_to_labels(full_offsets, doc.spans, text=doc.text)
+        agg["unlabelled_spans"] += full_stats.unlabelled_spans
         report.tokens_per_doc.append(len(full["input_ids"]))
-    report.stats = AlignmentStats(
-        tokens=agg[0], entity_tokens=agg[1], straddling=agg[2], unlabelled_spans=agg[3]
-    )
+    report.stats = AlignmentStats(**agg)
     return out, report
 
 

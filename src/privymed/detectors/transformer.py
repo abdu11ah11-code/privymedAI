@@ -84,6 +84,12 @@ class TransformerDetector(Detector):
             "model_name": record.get("config", {}).get("model_name"),
             "train_git": record.get("git"),
             "device": str(self.runner.device),
+            "inference": {
+                "dtype": "float32",
+                "max_length": self.runner.max_length,
+                "stride": self.runner.stride,
+                "batch_size": self.runner.batch_size,
+            },
         }
 
     def _detect(self, text: str) -> list[Span]:

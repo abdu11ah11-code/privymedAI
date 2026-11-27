@@ -87,6 +87,24 @@ def linear_warmup_decay(
     return torch.optim.lr_scheduler.LambdaLR(optimizer, factor)
 
 
+def load_token_classifier(name_or_path: str | Path) -> Any:
+    """Load a token classifier with fp32 master weights and the PrivyMed label set.
+
+    Transformers 5 keeps a checkpoint's stored dtype; microsoft/deberta-v3-base is stored
+    in fp16, and fp16 master weights made the training loss NaN within the first steps.
+    bf16 autocast then handles the mixed-precision arithmetic during training.
+    """
+    from transformers import AutoModelForTokenClassification
+
+    return AutoModelForTokenClassification.from_pretrained(
+        name_or_path,
+        num_labels=len(ID2LABEL),
+        id2label=ID2LABEL,
+        label2id=LABEL2ID,
+        dtype=torch.float32,
+    )
+
+
 def _collate(tokenizer: Any, items: Sequence[Encoded]) -> dict[str, torch.Tensor]:
     """Dynamic padding: pad to the longest window in the batch, labels with IGNORE."""
     longest = max(len(e.input_ids) for e in items)
@@ -131,7 +149,7 @@ def _amp(cfg: TrainConfig, device: torch.device) -> bool:
 def train(
     cfg: TrainConfig, root: Path | None = None, require_clean: bool = False
 ) -> dict[str, object]:
-    from transformers import AutoModelForTokenClassification, AutoTokenizer
+    from transformers import AutoTokenizer
 
     root = root or find_repo_root()
     manifest_path = root / cfg.manifest
@@ -164,16 +182,7 @@ def train(
         len(dev_docs),
     )
 
-    # Master weights must be fp32: Transformers 5 keeps the checkpoint's stored dtype, and
-    # microsoft/deberta-v3-base is stored in fp16 -> fp16 AdamW updates -> NaN loss within the
-    # first steps. bf16 autocast then handles the mixed-precision arithmetic.
-    model = AutoModelForTokenClassification.from_pretrained(
-        cfg.model_name,
-        num_labels=len(ID2LABEL),
-        id2label=ID2LABEL,
-        label2id=LABEL2ID,
-        dtype=torch.float32,
-    ).to(device)
+    model = load_token_classifier(cfg.model_name).to(device)
     weight_dtype = str(next(model.parameters()).dtype)
     no_decay = ("bias", "LayerNorm.weight", "layernorm", "layer_norm")
     groups = [
@@ -250,7 +259,7 @@ def train(
             tokenizer.save_pretrained(out_dir)
         else:
             bad_epochs += 1
-            if bad_epochs >= cfg.patience:
+            if bad_epochs >= cfg.patience and epoch < cfg.epochs:
                 log.info("early stopping after epoch %d", epoch)
                 break
 
@@ -259,6 +268,7 @@ def train(
         "run_name": cfg.run_name,
         "config": json.loads(cfg.model_dump_json()),
         "dataset": json.loads(manifest_path.read_text(encoding="utf-8"))["version"],
+        "dataset_sha256": {s: files[s]["sha256"] for s in ("train", "dev")},
         "train_documents": len(train_docs),
         "train_windows": len(train_windows),
         "alignment": {
@@ -274,7 +284,7 @@ def train(
         "weight_dtype": weight_dtype,
         "checkpoint": (cfg.output_dir / cfg.run_name).as_posix(),
         "git": git_at_start,
-        "packages": {**_package_versions(), "torch": torch.__version__},
+        "packages": _package_versions(),
         "environment": {"python": platform.python_version(), "platform": platform.platform()},
     }
     report = root / cfg.report_dir / f"{cfg.run_name}.json"

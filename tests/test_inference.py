@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 torch = pytest.importorskip("torch")
@@ -40,13 +42,23 @@ def test_linear_warmup_then_decay() -> None:
     assert lrs == pytest.approx([0.0, 0.5, 1.0, 0.75, 0.5, 0.25])
 
 
-def test_fp16_stored_checkpoint_is_loaded_as_fp32_for_training() -> None:
-    """Regression: deberta-v3-base is stored in fp16; Transformers 5 keeps that dtype unless
-    told otherwise, and fp16 master weights made the training loss NaN."""
-    import inspect
+def test_fp16_stored_checkpoint_is_loaded_as_fp32(tmp_path: Path) -> None:
+    """Review M4-10 (behavioural): a checkpoint saved in fp16, like deberta-v3-base, must load
+    with fp32 master weights; fp16 master weights made the training loss NaN."""
+    from transformers import BertConfig, BertForTokenClassification
 
-    from privymed.training import train
+    from privymed.training.alignment import LABELS
+    from privymed.training.train import load_token_classifier
 
-    source = inspect.getsource(train.train)
-    assert "dtype=torch.float32" in source
-    assert "FloatingPointError" in source  # non-finite loss aborts the run
+    cfg = BertConfig(
+        vocab_size=64,
+        hidden_size=16,
+        num_hidden_layers=1,
+        num_attention_heads=2,
+        intermediate_size=32,
+    )
+    cfg.num_labels = len(LABELS)
+    BertForTokenClassification(cfg).to(torch.float16).save_pretrained(tmp_path)
+    model = load_token_classifier(tmp_path)
+    assert {p.dtype for p in model.parameters()} == {torch.float32}
+    assert model.config.num_labels == len(LABELS)

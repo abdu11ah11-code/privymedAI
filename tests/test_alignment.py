@@ -66,10 +66,11 @@ def test_touching_spans_without_separator_split_on_b_tag() -> None:
     assert len(labels_to_spans(offsets, labels)) == 2
 
 
-def test_straddling_token_is_counted() -> None:
-    offsets = [(0, 5)]  # one subword "MRN12" but the span is only "12"
-    _, stats = spans_to_labels(offsets, [Span(start=3, end=5, label=EntityType.ID)])
-    assert stats.straddling == 1 and stats.unlabelled_spans == 1
+def test_straddling_token_is_counted_when_prefix_cannot_trim() -> None:
+    text = "MRN12"  # one subword; the span is only "12" and the glued "MRN" cannot be trimmed
+    offsets = [(0, 5)]
+    _, stats = spans_to_labels(offsets, [Span(start=3, end=5, label=EntityType.ID)], text=text)
+    assert stats.straddling == 1 and stats.merged_prefix == 0 and stats.unlabelled_spans == 1
 
 
 def test_lenient_decoding_and_label_switch() -> None:
@@ -123,3 +124,77 @@ def test_real_tokenizers_align_without_straddling(name: str) -> None:
         if len(windows) == 1 and doc.doc_id in single:
             spans = labels_to_spans(windows[0].offsets, windows[0].labels)
             assert [s.key for s in spans] == [g.key for g in doc.spans], doc.doc_id
+
+
+TEXT_PAREN = "Call (+92 300 1234567) now"
+# A RoBERTa-style token "(+" glues the outside "(" to the phone's first character.
+OFFSETS_PAREN = [(0, 4), (5, 7), (7, 9), (10, 13), (14, 21), (21, 22), (23, 26)]
+
+
+def test_merged_prefix_token_is_labelled_b_and_counted() -> None:
+    gold = [Span(start=6, end=21, label=PH)]  # "+92 300 1234567"
+    labels, stats = spans_to_labels(OFFSETS_PAREN, gold)
+    assert labels[1] == lab("B-PHONE")
+    assert stats.merged_prefix == 1 and stats.straddling == 0
+    decoded = labels_to_spans(OFFSETS_PAREN, labels, text=TEXT_PAREN)
+    assert [s.key for s in decoded] == [g.key for g in gold]
+
+
+def test_decoding_with_text_trims_unbalanced_paren() -> None:
+    labels = [lab("O"), lab("B-PHONE"), lab("I-PHONE"), lab("I-PHONE"), lab("I-PHONE")]
+    labels += [lab("O"), lab("O")]
+    spans = labels_to_spans(OFFSETS_PAREN, labels, text=TEXT_PAREN)
+    assert [TEXT_PAREN[s.start : s.end] for s in spans] == ["+92 300 1234567"]
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    ("name", "expect_merged"),
+    [
+        ("distilbert-base-cased", False),
+        ("roberta-base", True),
+        ("microsoft/deberta-v3-base", False),
+    ],
+)
+def test_real_tokenizers_round_trip_with_windows(name: str, expect_merged: bool) -> None:
+    """Review M4-1/M4-12: gold -> labels -> merged windows -> decode == gold, multi-window
+    documents included, for all three tokenizers (RoBERTa via the merged-prefix rule)."""
+    transformers = pytest.importorskip("transformers")
+    from privymed.data_generation.engine import generate_document
+    from privymed.data_generation.entities import EntityFactory
+    from privymed.data_generation.families import FAMILIES_BY_ID
+    from privymed.data_generation.noise import CLEAN
+    from privymed.training.data import encode_documents
+    from privymed.training.inference import TokenPrediction, merge_windows
+
+    try:
+        tok = transformers.AutoTokenizer.from_pretrained(name)
+    except OSError:
+        pytest.skip(f"{name} not available offline")
+    factory = EntityFactory(0)
+    # train families with "(+92 ..." phones, "(#123)" ids and "MRN=..." fields
+    fams = ["rx_refill", "dis_terse", "adm_kv", "lab_sms", "ref_email", "dis_formal"]
+    docs = [
+        generate_document(FAMILIES_BY_ID[f], factory, 5, i, noise=CLEAN)
+        for f in fams
+        for i in range(30)
+    ]
+    encoded, report = encode_documents(tok, docs, max_length=64, stride=16)
+    assert report.windows > 2 * report.documents  # windowing really exercised
+    assert report.stats.straddling == 0 and report.stats.unlabelled_spans == 0
+    assert (report.stats.merged_prefix > 0) is expect_merged
+    by_doc: dict[str, list[list[TokenPrediction]]] = {}
+    for e in encoded:
+        n = len(e.offsets)
+        by_doc.setdefault(e.doc_id, []).append(
+            [
+                TokenPrediction(o, lbl, 1.0, min(t, n - 1 - t))
+                for t, (o, lbl) in enumerate(zip(e.offsets, e.labels, strict=True))
+                if o[0] != o[1]
+            ]
+        )
+    for doc in docs:
+        merged = merge_windows(by_doc[doc.doc_id])
+        offsets = [m.offset for m in merged]
+        spans = labels_to_spans(offsets, [m.label_id for m in merged], text=doc.text)
+        assert [s.key for s in spans] == [g.key for g in doc.spans], doc.doc_id

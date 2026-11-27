@@ -20,6 +20,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from privymed.detectors.base import trim_boundaries
 from privymed.schema import EntityType, Span
 
 IGNORE = -100
@@ -37,7 +38,8 @@ Offset = tuple[int, int]
 class AlignmentStats:
     tokens: int = 0
     entity_tokens: int = 0
-    straddling: int = 0  # subwords that cross a span boundary (should be 0)
+    straddling: int = 0  # subwords that cross a span boundary and cannot be represented
+    merged_prefix: int = 0  # tokens that glue outside chars to a span start, e.g. BPE "(+"
     unlabelled_spans: int = 0  # spans that no subword starts inside (should be 0)
 
 
@@ -67,8 +69,19 @@ def clean_offsets(text: str, offsets: Sequence[Offset]) -> list[Offset]:
     return out
 
 
+def _prefix_trims_away(text: str | None, token_start: int, span: Span) -> bool:
+    """True if decoding would trim the characters a token glues before ``span.start``.
+
+    Without the text we cannot check, so we assume yes (offset-only callers, tests).
+    """
+    if text is None:
+        return True
+    start, end = trim_boundaries(text, token_start, span.end)
+    return (start, end) == (span.start, span.end)
+
+
 def spans_to_labels(
-    offsets: Sequence[Offset], spans: Sequence[Span]
+    offsets: Sequence[Offset], spans: Sequence[Span], text: str | None = None
 ) -> tuple[list[int], AlignmentStats]:
     """Label each subword from gold character spans.
 
@@ -78,7 +91,7 @@ def spans_to_labels(
     """
     ordered = sorted(spans, key=lambda s: s.start)
     labels = [IGNORE] * len(offsets)
-    straddling = entity_tokens = 0
+    straddling = entity_tokens = merged = 0
     first_token_seen = [False] * len(ordered)
     si = 0
     for ti, (start, end) in enumerate(offsets):
@@ -96,13 +109,25 @@ def spans_to_labels(
                 entity_tokens += 1
                 if end > span.end:
                     straddling += 1
-            elif start < span.start < end:  # token begins before the span but runs into it
-                straddling += 1
+            elif start < span.start < end and _prefix_trims_away(text, start, span):
+                # Token glues outside characters to the span start (RoBERTa byte-level BPE:
+                # "(+", "(#", "=(", "=#"). Label it as the span's first token; decoding trims
+                # the excluded leading "(" / "=" again (review M4-1: labelling it O taught the
+                # model to drop the "+" / "#" and made 322 train spans unrepresentable).
+                first_token_seen[si] = True
+                label = f"B-{span.label.value}"
+                entity_tokens += 1
+                merged += 1
+                if end > span.end:
+                    straddling += 1
+            elif start < span.start < end:
+                straddling += 1  # glued prefix would not trim away (e.g. "MRN12"): unrepresentable
         labels[ti] = LABEL2ID[label]
     stats = AlignmentStats(
         tokens=sum(1 for o in offsets if not _is_special(o)),
         entity_tokens=entity_tokens,
         straddling=straddling,
+        merged_prefix=merged,
         unlabelled_spans=sum(1 for seen in first_token_seen if not seen),
     )
     return labels, stats
@@ -113,6 +138,7 @@ def labels_to_spans(
     label_ids: Sequence[int],
     scores: Sequence[float] | None = None,
     source: str = "transformer",
+    text: str | None = None,
 ) -> list[Span]:
     """Decode per-subword label ids into character spans.
 
@@ -129,10 +155,15 @@ def labels_to_spans(
     def close() -> None:
         if cur_label is not None:
             score = sum(cur_scores) / len(cur_scores) if cur_scores else 1.0
+            start, end = cur_start, cur_end
+            if text is not None:  # trim chars a merged-prefix token glued on, per the guide
+                start, end = trim_boundaries(text, start, end)
+            if end <= start:
+                return
             spans.append(
                 Span(
-                    start=cur_start,
-                    end=cur_end,
+                    start=start,
+                    end=end,
                     label=EntityType(cur_label),
                     score=min(1.0, max(0.0, score)),
                     source=source,

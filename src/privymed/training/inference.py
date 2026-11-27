@@ -80,10 +80,9 @@ class TokenClassifierRunner:
                 return_tensors="pt",
             )  # fmt: skip
             batch = {k: v.to(self.device) for k, v in batch.items()}
-            with torch.autocast(
-                self.device.type, dtype=torch.bfloat16, enabled=self.device.type == "cuda"
-            ):
-                logits = self.model(**batch).logits
+            # fp32 inference: under bf16, batch packing changed predictions with document order
+            # and batch size (review M4-2: 2 dev docs differ); fp32 gave 0 differences.
+            logits = self.model(**batch).logits
             probs = torch.softmax(logits.float(), dim=-1)
             conf, label_ids = probs.max(dim=-1)
             for row, i in enumerate(idx):
@@ -102,7 +101,7 @@ class TokenClassifierRunner:
                 ]
                 per_doc[doc].append(window)
         out = []
-        for windows in per_doc:
+        for text, windows in zip(texts, per_doc, strict=True):
             merged = merge_windows(windows)
             out.append(
                 labels_to_spans(
@@ -110,6 +109,7 @@ class TokenClassifierRunner:
                     [m.label_id for m in merged],
                     [m.prob for m in merged],
                     source=self.source,
+                    text=text,
                 )
             )
         return out

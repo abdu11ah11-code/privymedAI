@@ -14,7 +14,7 @@ from typing import Any, ClassVar
 
 from privymed.schema import GOLD_SOURCE, Span, span_sort_key, validate_spans_against_text
 
-_EDGE_PUNCT = ".,;:"
+_EDGE_PUNCT = ".,;:="  # "=" ends field labels ("MRN=...", guide) and never belongs to an entity
 
 
 def trim_boundaries(text: str, start: int, end: int) -> tuple[int, int]:

@@ -29,6 +29,7 @@ from privymed.logging_utils import get_logger, setup_logging
 from privymed.schema import Document, Span
 
 log = get_logger(__name__)
+LATENCY_SAMPLE = 100  # documents timed one at a time for batch-capable systems
 DEV_SPLITS = frozenset({"train", "dev"})  # allowlist: anything else needs --final
 MANIFEST_DIR = "data/manifests"  # every frozen manifest here has its test files guarded
 
@@ -89,7 +90,9 @@ def _git_state(root: Path) -> dict[str, object]:
             ).stdout.strip()
 
         commit = git("rev-parse", "--short", "HEAD")
-        dirty = bool(git("status", "--porcelain", "--", "src", "configs", "pyproject.toml"))
+        dirty = bool(
+            git("status", "--porcelain", "--", "src", "configs", "pyproject.toml", "uv.lock")
+        )
     except (OSError, subprocess.CalledProcessError):
         return {"commit": "unknown", "dirty": True}
     return {"commit": commit, "dirty": dirty}
@@ -99,7 +102,10 @@ def _package_versions() -> dict[str, str]:
     from importlib.metadata import PackageNotFoundError, version
 
     out = {}
-    for pkg in ("privymed", "numpy", "scipy", "presidio-analyzer", "spacy", "en-core-web-lg"):
+    for pkg in (
+        "privymed", "numpy", "scipy", "presidio-analyzer", "spacy", "en-core-web-lg",
+        "torch", "transformers", "tokenizers", "safetensors",
+    ):  # fmt: skip
         try:
             out[pkg] = version(pkg)
         except PackageNotFoundError:
@@ -190,9 +196,19 @@ def evaluate_system(
     load_ms = (time.perf_counter() - load_t0) * 1000
     preds, latency = run_detector(detector, docs)
     result = evaluate(docs, preds)
+    batched = getattr(detector, "prefers_batch", False)
+    total_s = latency.sum() / 1000  # throughput comes from the scored run
+    if batched:
+        # Comparable latency (review M4-7): time single-document calls on a fixed sample, the
+        # same way regex/Presidio are timed. Scores still come from the whole-split call.
+        sample = docs[:LATENCY_SAMPLE]
+        latency = np.zeros(len(sample))
+        for i, doc in enumerate(sample):
+            t0 = time.perf_counter()
+            detector.detect(doc.text)
+            latency[i] = (time.perf_counter() - t0) * 1000
     log.info("%s on %s: %d docs evaluated", system, split, len(docs))
 
-    total_s = latency.sum() / 1000
     chars = sum(len(d.text) for d in docs)
     return {
         "system": system,
@@ -207,14 +223,13 @@ def evaluate_system(
             "platform": platform.platform(),
             "processor": platform.processor(),
         },
-        "latency_mode": "whole_split_batched_mean"
-        if getattr(detector, "prefers_batch", False)
-        else "per_document",
+        "latency_mode": f"per_document_sample_{LATENCY_SAMPLE}" if batched else "per_document",
         "latency_ms_per_doc": {
             "mean": round(float(latency.mean()), 3),
             "p50": round(float(np.percentile(latency, 50)), 3),
             "p95": round(float(np.percentile(latency, 95)), 3),
         },
+        "throughput_mode": "whole_split_batched" if batched else "per_document",
         "throughput": {
             "docs_per_s": round(len(docs) / total_s, 1) if total_s else None,
             "chars_per_s": round(chars / total_s) if total_s else None,
