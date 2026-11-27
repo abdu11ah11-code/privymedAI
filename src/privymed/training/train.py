@@ -127,7 +127,9 @@ def _amp(cfg: TrainConfig, device: torch.device) -> bool:
     return cfg.precision == "bf16" and device.type == "cuda"
 
 
-def train(cfg: TrainConfig, root: Path | None = None) -> dict[str, object]:
+def train(
+    cfg: TrainConfig, root: Path | None = None, require_clean: bool = False
+) -> dict[str, object]:
     from transformers import AutoModelForTokenClassification, AutoTokenizer
 
     root = root or find_repo_root()
@@ -141,6 +143,13 @@ def train(cfg: TrainConfig, root: Path | None = None) -> dict[str, object]:
     if cfg.max_dev_docs:
         dev_docs = dev_docs[: cfg.max_dev_docs]
 
+    # Capture the code state at the START (files edited during a run must not be recorded
+    # as the run's code; E-003 preliminary run showed dirty=True from later edits).
+    git_at_start = _git_state(root)
+    if require_clean and git_at_start["dirty"]:
+        raise RuntimeError(
+            "uncommitted changes in src/configs: commit first, or pass --allow-dirty"
+        )
     set_global_seed(cfg.seed)
     rng = random.Random(cfg.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -240,7 +249,7 @@ def train(cfg: TrainConfig, root: Path | None = None) -> dict[str, object]:
         "peak_gpu_memory_gib": round(peak, 2) if peak is not None else None,
         "device": torch.cuda.get_device_name(0) if device.type == "cuda" else "cpu",
         "checkpoint": (cfg.output_dir / cfg.run_name).as_posix(),
-        "git": _git_state(root),
+        "git": git_at_start,
         "packages": {**_package_versions(), "torch": torch.__version__},
         "environment": {"python": platform.python_version(), "platform": platform.platform()},
     }
@@ -258,6 +267,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--seed", type=int, help="override the config seed")
     parser.add_argument("--run-name", help="override the config run_name")
+    parser.add_argument("--allow-dirty", action="store_true", help="allow uncommitted code")
     args = parser.parse_args(argv)
     setup_logging("INFO")
     cfg = load_train_config(args.config)
@@ -268,7 +278,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         updates["run_name"] = args.run_name
     if updates:
         cfg = TrainConfig.model_validate({**cfg.model_dump(), **updates})
-    record = train(cfg)
+    record = train(cfg, require_clean=not args.allow_dirty)
     print(
         f"{record['run_name']}: best dev strict F1 {record['best_dev_strict_f1']} at epoch "
         f"{record['best_epoch']}, {record['train_seconds']} s, "

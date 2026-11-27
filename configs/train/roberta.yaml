@@ -1,0 +1,12 @@
+# E-004: RoBERTa-base (125M). Byte-level BPE merges "(+"/"(#" (323 unavoidable straddles on train).
+run_name: roberta_s13
+model_name: roberta-base
+lr: 3.0e-5
+batch_size: 8
+grad_accum: 2
+epochs: 4
+patience: 2
+warmup_ratio: 0.1
+weight_decay: 0.01
+seed: 13
+precision: bf16

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
@@ -101,3 +102,26 @@ def test_report_records_git_state_and_packages(small_root: Path) -> None:
     git, packages = report["git"], report["packages"]
     assert isinstance(git, dict) and set(git) == {"commit", "dirty"}
     assert isinstance(packages, dict) and "numpy" in packages
+
+
+class _Batchy(Detector):
+    name = "batchy"
+    prefers_batch = True
+    batch_size = 3
+
+    def __init__(self) -> None:
+        self.batch_calls: list[int] = []
+
+    def _detect(self, text: str) -> list[Span]:
+        return []
+
+    def detect_batch(self, texts: Sequence[str]) -> list[list[Span]]:
+        self.batch_calls.append(len(texts))
+        return [[] for _ in texts]
+
+
+def test_batch_preferring_detector_is_run_in_chunks() -> None:
+    det = _Batchy()
+    docs = [Document(doc_id=str(i), text="x") for i in range(7)]
+    preds, latency = run_detector(det, docs, warmup=0)
+    assert det.batch_calls == [3, 3, 1] and len(preds) == 7 and latency.shape == (7,)

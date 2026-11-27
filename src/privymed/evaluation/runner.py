@@ -33,10 +33,10 @@ DEV_SPLITS = frozenset({"train", "dev"})  # allowlist: anything else needs --fin
 MANIFEST_DIR = "data/manifests"  # every frozen manifest here has its test files guarded
 
 
-Params = dict[str, float]
+Params = dict[str, float | str]
 
 
-def _regex(**params: float) -> Detector:
+def _regex(**params: float | str) -> Detector:
     from privymed.detectors.regex import RegexDetector
 
     if params:
@@ -44,14 +44,24 @@ def _regex(**params: float) -> Detector:
     return RegexDetector()
 
 
-def _presidio(**params: float) -> Detector:
+def _presidio(**params: float | str) -> Detector:
     from privymed.detectors.presidio import PresidioDetector
 
-    return PresidioDetector(**params)
+    return PresidioDetector(**params)  # type: ignore[arg-type]
+
+
+def _transformer(**params: float | str) -> Detector:
+    from privymed.detectors.transformer import DEFAULT_CHECKPOINT, TransformerDetector
+
+    return TransformerDetector(checkpoint=str(params.get("checkpoint", DEFAULT_CHECKPOINT)))
 
 
 # System name -> factory(**params). Imports are lazy so heavy systems load only when asked for.
-SYSTEMS: dict[str, Callable[..., Detector]] = {"regex": _regex, "presidio": _presidio}
+SYSTEMS: dict[str, Callable[..., Detector]] = {
+    "regex": _regex,
+    "presidio": _presidio,
+    "transformer": _transformer,
+}
 
 
 def register(name: str, factory: Callable[..., Detector]) -> None:
@@ -62,7 +72,10 @@ def _parse_params(items: Sequence[str]) -> Params:
     out: Params = {}
     for item in items:
         key, _, value = item.partition("=")
-        out[key.strip()] = float(value)
+        try:
+            out[key.strip()] = float(value)
+        except ValueError:
+            out[key.strip()] = value  # e.g. checkpoint=models/distilbert_s13
     return out
 
 
@@ -124,11 +137,29 @@ def _guard_split(split: str, file_info: dict[str, str], root: Path, final: bool)
 def run_detector(
     detector: Detector, docs: Sequence[Document], warmup: int = 5
 ) -> tuple[dict[str, list[Span]], np.ndarray]:
-    """Predict every document; return predictions and per-document latency (ms)."""
+    """Predict every document; return predictions and per-document latency (ms).
+
+    Detectors with ``prefers_batch = True`` (GPU models) run ``detect_batch`` in chunks
+    of ``detector.batch_size``; each document is assigned chunk time / chunk size.
+    Batching matters for correctness too, not just speed: under bf16, batch size and
+    padding change a few borderline predictions (11/600 dev documents for DistilBERT),
+    so evaluation must use the same batch configuration as training-time selection.
+    """
     for doc in docs[:warmup]:  # warm caches / lazy model loading outside the timed loop
         detector.detect(doc.text)
     preds: dict[str, list[Span]] = {}
     latency = np.zeros(len(docs))
+    if getattr(detector, "prefers_batch", False):
+        size = int(getattr(detector, "batch_size", 32))
+        for b in range(0, len(docs), size):
+            chunk = docs[b : b + size]
+            t0 = time.perf_counter()
+            outs = detector.detect_batch([d.text for d in chunk])
+            per_doc = (time.perf_counter() - t0) * 1000 / len(chunk)
+            for i, (doc, spans) in enumerate(zip(chunk, outs, strict=True)):
+                preds[doc.doc_id] = spans
+                latency[b + i] = per_doc
+        return preds, latency
     for i, doc in enumerate(docs):
         t0 = time.perf_counter()
         preds[doc.doc_id] = detector.detect(doc.text)
@@ -177,6 +208,7 @@ def evaluate_system(
             "platform": platform.platform(),
             "processor": platform.processor(),
         },
+        "latency_mode": "batched" if getattr(detector, "prefers_batch", False) else "per_document",
         "latency_ms_per_doc": {
             "mean": round(float(latency.mean()), 3),
             "p50": round(float(np.percentile(latency, 50)), 3),
@@ -285,7 +317,10 @@ def main(argv: Sequence[str] | None = None) -> None:
         args.system, args.split, root / args.manifest, root, args.final, params
     )
     # Non-default params get their own file, so they never overwrite the canonical report.
-    suffix = "".join(f"_{k}{v:g}" for k, v in sorted(params.items()))
+    suffix = "".join(
+        f"_{k}{v:g}" if isinstance(v, float) else f"_{Path(str(v)).name}"
+        for k, v in sorted(params.items())
+    )
     name = f"{args.system}_{report['dataset_version']}_{args.split}{suffix}.json"
     out = (root / args.report_dir / name).resolve()
     out.parent.mkdir(parents=True, exist_ok=True)

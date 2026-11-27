@@ -1,0 +1,12 @@
+# E-005: DeBERTa-v3-base (184M). bf16 (fp16 is numerically unstable for DeBERTa-v3).
+run_name: deberta_s13
+model_name: microsoft/deberta-v3-base
+lr: 3.0e-5
+batch_size: 8
+grad_accum: 2
+epochs: 4
+patience: 2
+warmup_ratio: 0.1
+weight_decay: 0.01
+seed: 13
+precision: bf16
