@@ -9,6 +9,7 @@ authors = [{ name = "abdu11ah11-code" }]
 dependencies = [
     "datasketch>=2.0.0",
     "faker>=40.63.0",
+    "numpy>=2.5.5",
     "pydantic>=2.7",
     "pyyaml>=6.0",
 ]
@@ -28,6 +29,7 @@ dev = [
     "ruff>=0.6",
     "mypy>=1.11",
     "types-PyYAML",
+    "seqeval>=1.2.2",
 ]
 
 [build-system]
@@ -58,7 +60,7 @@ files = ["src", "tests"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["datasketch", "datasketch.*"]
+module = ["datasketch", "datasketch.*", "seqeval", "seqeval.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
