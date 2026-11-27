@@ -164,9 +164,17 @@ def train(
         len(dev_docs),
     )
 
+    # Master weights must be fp32: Transformers 5 keeps the checkpoint's stored dtype, and
+    # microsoft/deberta-v3-base is stored in fp16 -> fp16 AdamW updates -> NaN loss within the
+    # first steps. bf16 autocast then handles the mixed-precision arithmetic.
     model = AutoModelForTokenClassification.from_pretrained(
-        cfg.model_name, num_labels=len(ID2LABEL), id2label=ID2LABEL, label2id=LABEL2ID
+        cfg.model_name,
+        num_labels=len(ID2LABEL),
+        id2label=ID2LABEL,
+        label2id=LABEL2ID,
+        dtype=torch.float32,
     ).to(device)
+    weight_dtype = str(next(model.parameters()).dtype)
     no_decay = ("bias", "LayerNorm.weight", "layernorm", "layer_norm")
     groups = [
         {"params": [p for n, p in model.named_parameters() if not any(k in n for k in no_decay)],
@@ -198,7 +206,10 @@ def train(
             with torch.autocast(device.type, dtype=torch.bfloat16, enabled=_amp(cfg, device)):
                 loss = model(**t).loss / cfg.grad_accum
             loss.backward()
-            losses.append(loss.item() * cfg.grad_accum)
+            value = loss.item() * cfg.grad_accum
+            if not math.isfinite(value):  # fail fast instead of training a corrupted model
+                raise FloatingPointError(f"non-finite loss at epoch {epoch} step {step}")
+            losses.append(value)
             if step % cfg.grad_accum == 0 or step == len(batches):
                 torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.max_grad_norm)
                 optimizer.step()
@@ -260,6 +271,7 @@ def train(
         "train_seconds": round(time.perf_counter() - t_start, 1),
         "peak_gpu_memory_gib": round(peak, 2) if peak is not None else None,
         "device": torch.cuda.get_device_name(0) if device.type == "cuda" else "cpu",
+        "weight_dtype": weight_dtype,
         "checkpoint": (cfg.output_dir / cfg.run_name).as_posix(),
         "git": git_at_start,
         "packages": {**_package_versions(), "torch": torch.__version__},

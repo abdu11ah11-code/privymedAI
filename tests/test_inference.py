@@ -38,3 +38,15 @@ def test_linear_warmup_then_decay() -> None:
         opt.step()
         sched.step()
     assert lrs == pytest.approx([0.0, 0.5, 1.0, 0.75, 0.5, 0.25])
+
+
+def test_fp16_stored_checkpoint_is_loaded_as_fp32_for_training() -> None:
+    """Regression: deberta-v3-base is stored in fp16; Transformers 5 keeps that dtype unless
+    told otherwise, and fp16 master weights made the training loss NaN."""
+    import inspect
+
+    from privymed.training import train
+
+    source = inspect.getsource(train.train)
+    assert "dtype=torch.float32" in source
+    assert "FloatingPointError" in source  # non-finite loss aborts the run

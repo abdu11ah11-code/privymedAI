@@ -57,7 +57,9 @@ class TransformerDetector(Detector):
             )
         device = torch.device(self.device_name or ("cuda" if torch.cuda.is_available() else "cpu"))
         tokenizer = AutoTokenizer.from_pretrained(self.checkpoint, use_fast=True)
-        model = AutoModelForTokenClassification.from_pretrained(self.checkpoint).to(device)
+        model = AutoModelForTokenClassification.from_pretrained(
+            self.checkpoint, dtype=torch.float32
+        ).to(device)
         record = self._record()
         cfg = record.get("config", {})
         return TokenClassifierRunner(
