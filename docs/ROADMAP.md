@@ -10,7 +10,7 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
 | 2b | OOD test set | NOT STARTED | 150–300 LLM-written notes, every annotation manually verified |
 | 3 | Baselines + span evaluator | DONE | Regex + Presidio implement `Detector`; evaluator matches hand-computed cases; seqeval cross-check |
 | 4 | Transformer training | DONE | 3 candidates × 3 seeds on dev; checkpoint reload reproduces dev score; experiments logged |
-| 5 | Qwen LLM baseline | IN PROGRESS (review pending) | Prompt + schema documented; parse/hallucination failures counted; same docs and evaluator |
+| 5 | Qwen LLM baseline | DONE | Prompt + schema documented; parse/hallucination failures counted; same docs and evaluator |
 | 6 | Error analysis → hybrid | NOT STARTED | Error taxonomy on dev; each fusion rule justified by a dev finding; ablations |
 | 7 | Redaction engine | NOT STARTED | Mask / label / surrogate modes; non-PII text preserved byte-for-byte (property tests) |
 | 8 | Frozen final test evaluation | NOT STARTED | One-shot run, test hash logged, bootstrap CIs, all systems same data |
@@ -83,5 +83,5 @@ Status values: NOT STARTED · IN PROGRESS · DONE (verified) · BLOCKED
 - [x] 5.1 Ollama 0.40.18 + qwen3.5:4b (Q4_K_M, digest d8b0f5e9760c), 100% GPU
 - [x] 5.2 Prompt from the annotation guide, JSON-schema output, 3 deterministic train-only examples
 - [x] 5.3 String-to-offset mapping with parse-failure / hallucination / invalid-type accounting
-- [x] 5.4 LLMDetector + dev evaluation (E-006): strict F1 0.956, leak 1.71%, 0 parse failures, 19/6,669 hallucinated mentions
-- [ ] Independent review -> fixes -> commit -> push
+- [x] 5.4 LLMDetector + dev evaluation (E-006): prompt v2 official — strict F1 0.959, leak 2.49% (comparable to regex), 0 parse failures, 18/6,550 hallucinated
+- [x] Independent review: 0 critical, 4 important (unsupported leak claim, prompt missing guide rules, near-duplicate few-shot examples, unscripted figures), 7 minor - all addressed; prompt v2 re-run

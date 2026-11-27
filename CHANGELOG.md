@@ -4,6 +4,9 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Fixed — Milestone 5 independent review
+- Prompt v2 (guide boundary rules, convention- and family-diverse few-shot examples); shared `strip_leading_title`; raw outputs and prompt text saved per run; near-miss and truncation counters; output-length cap; LLM params forwarded and unknown keys rejected; reports store exact `leaked_chars` / `gold_chars`; `scripts/analyze_llm_misses.py`.
+
 ### Added — Milestone 5
 - Local LLM baseline: `llm/mapping.py` (string-to-offset mapping and output accounting), `llm/prompt.py` (guide-based instructions, JSON schema, train-only deterministic few-shot examples), `LLMDetector` (Ollama, localhost only), registered in `privymed-eval`. Experiment E-006.
 - Runner resets detector statistics after warm-up; leading titles stripped from LLM names.

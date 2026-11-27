@@ -22,7 +22,7 @@
     }
   },
   "git": {
-    "commit": "50bf43e",
+    "commit": "0d0c640",
     "dirty": false
   },
   "packages": {
@@ -44,19 +44,21 @@
   },
   "latency_mode": "per_document_sample_100",
   "latency_ms_per_doc": {
-    "mean": 44.862,
-    "p50": 43.463,
-    "p95": 59.821
+    "mean": 43.32,
+    "p50": 41.877,
+    "p95": 56.021
   },
   "throughput_mode": "whole_split_batched",
   "throughput": {
-    "docs_per_s": 33.2,
-    "chars_per_s": 15606
+    "docs_per_s": 36.0,
+    "chars_per_s": 16905
   },
-  "first_call_ms": 9348.6,
+  "first_call_ms": 9026.1,
   "metrics": {
     "n_docs": 600,
     "leak_rate": 0.0,
+    "leaked_chars": 4,
+    "gold_chars": 105050,
     "strict": {
       "micro": {
         "tp": 6815,

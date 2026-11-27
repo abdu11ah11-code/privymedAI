@@ -145,30 +145,42 @@ Report: `reports/eval/transformer_v1_dev_roberta_s7.json` (commit `50bf43e`).
 
 ## E-006 — Local LLM baseline (`llm`: Qwen 3.5 4B via Ollama), dataset v1 / dev
 
-- **Date:** 2026-11-28 · **Commit:** `a3abe6b` (clean) · **Report:** `reports/eval/llm_v1_dev.json` · **Command:** `uv run privymed-eval --system llm --split dev`
-- **Model:** `qwen3.5:4b`, 4.2B parameters, Q4_K_M quantisation, digest `d8b0f5e9760c…`, Ollama 0.40.18, 100% on the RTX 4050 (3.4 GB). Local only (127.0.0.1); no text leaves the machine.
-- **Decoding:** temperature 0, seed 0, context 8,192, thinking off, JSON-schema structured output.
-- **Prompt:** instructions written from the annotation guide; 3 few-shot examples chosen deterministically from **train** (greedy entity-type cover over short documents: `adm_insurance-01548`, `rad_brief-00678`, `rad_brief-01218`); prompt SHA-256 recorded in the report.
-- **Mapping:** returned strings → every whole-word, case-sensitive occurrence; unmatched strings counted as hallucinations; leading titles stripped from PATIENT/STAFF (guide rule, same as the Presidio baseline).
+- **Date:** 2026-11-28 · **Official run:** commit `0d0c640` (clean), prompt **v2** · **Report:** `reports/eval/llm_v1_dev.json` · **Raw outputs + prompt text:** `reports/eval/raw/` (git-ignored, regenerable) · **Command:** `uv run privymed-eval --system llm --split dev`
+- **Model:** `qwen3.5:4b`, 4.2B parameters, Q4_K_M, digest `d8b0f5e9760c…`, Ollama 0.40.18; fully on the RTX 4050 (`size_vram` = `size` = 3.36 GB, recorded in the report). Local only (127.0.0.1).
+- **Decoding:** temperature 0, seed 0, context 8,192, output cap 2,048 tokens, thinking off, JSON-schema structured output. Determinism checked by the review (5 dev documents, repeated in a different order: byte-identical).
+- **Prompt v2:** instructions written from the annotation guide, including its HOSPITAL / ID / DATE / possessive boundary rules; 3 few-shot examples chosen deterministically from **train** by greedy cover over entity types *and* boundary conventions, never repeating a template family (`bundle-appt_email+adm_kv-02305`, `rad_brief-00678`, `lab_sms-00097`). Train contains no "hospital followed by a parenthesised department" case (all 219 are in the dev family `ref_form`), so that convention is conveyed by the instruction only.
+- **Mapping:** returned strings → every whole-word, case-sensitive occurrence; leading titles/role words stripped from names with the helper shared with Presidio.
 
 | Mode | Precision | Recall | F1 [95% CI] | Macro F1 |
 |---|---:|---:|---|---:|
-| strict | 0.957 | 0.955 | 0.956 [0.951, 0.960] | 0.963 |
-| boundary | 0.961 | 0.959 | 0.960 [0.955, 0.964] | 0.966 |
-| partial | 0.973 | 0.971 | 0.972 [0.968, 0.976] | 0.976 |
-| overlap | 0.978 | 0.976 | 0.977 [0.973, 0.980] | 0.980 |
+| strict | 0.964 | 0.954 | 0.959 [0.953, 0.965] | 0.969 |
+| boundary | 0.967 | 0.957 | 0.962 [0.956, 0.968] | 0.971 |
+| partial | 0.978 | 0.967 | 0.973 [0.968, 0.977] | 0.977 |
+| overlap | 0.981 | 0.970 | 0.975 [0.971, 0.979] | 0.979 |
 
-- **Leak rate:** 1.71%. **Latency:** 3.9 s/doc p50, 9.8 s p95 (GPU, single run) — about 170× RoBERTa.
-- **Output reliability (600 docs):** 0 parse failures; 19 of 6,669 returned mentions (0.28%) not found in the note (hallucinations); 0 invalid types; 1 type conflict.
-- **Per-type strict F1:** PATIENT 0.936 · STAFF 0.959 · PHONE 0.962 · ID 0.971 · ADDRESS 0.977 · HOSPITAL 0.884 (others in the report).
+- **Leak:** 2,619 of 105,050 gold PII characters (2.49%, 95% CI [1.88%, 3.26%]).
+- **Latency:** 4.5 s/doc p50, 11.0 s p95 (GPU, single run).
+- **Output reliability (600 docs):** 0 parse failures, 0 truncated generations, 0 invalid types, 2 type conflicts; of 6,550 returned mentions, 18 occur nowhere in the note (hallucinations) and 36 occur only with different casing/spacing (near misses, not mapped).
+- **Per-type strict F1:** PATIENT 0.881 · STAFF 0.968 · DATE 0.974 · PHONE 0.991 · EMAIL 0.993 · CNIC 0.998 · ID 0.976 · ADDRESS 0.987 · HOSPITAL 0.952.
 
-### Development history (disclosed)
+### Prompt v1 vs v2 (both dev, same model and mapping rules except as noted)
 
-- First full run (commit `0b266ae`, `reports/eval/superseded/llm_v1_dev_before_title_normalisation.json`): strict F1 0.868; STAFF 0.311 strict vs 0.962 partial. On 40 dev documents with STAFF mentions, Qwen kept "Dr." in 40 of 63 STAFF mentions despite the instruction not to include titles. Title stripping was then added to the mapping. This is a dev-informed change, but it only applies the annotation guide's boundary convention (identical to the Presidio baseline's normalisation); it does not change what the model detects (overlap F1 0.976 → 0.977, leak unchanged).
-- The first run's mapping statistics counted 606 documents (warm-up calls included); the runner now resets detector statistics after warm-up.
+| | v1 (`a3abe6b`, superseded) | v2 (`0d0c640`, official) |
+|---|---:|---:|
+| Strict F1 | 0.956 | 0.959 |
+| Overlap F1 | 0.977 | 0.975 |
+| Leak | 1.71% | 2.49% |
+| HOSPITAL strict | 0.884 | 0.952 |
+| PHONE strict | 0.962 | 0.991 |
+| PATIENT strict | 0.936 | 0.881 |
+
+- **Why v2 is the official configuration (decided before its results):** the M5 review showed that v1's instructions omitted guide rules that the regex and Presidio baselines encode, which made the comparison unfair to the LLM; v2 restores parity. Choosing v1 now because its leak is lower would be selection by outcome.
+- **The v2 regression, diagnosed** with `scripts/analyze_llm_misses.py` on the saved raw outputs: all 78 PATIENT boundary errors are predictions *inside* the gold span — names written "Last, First" ("Rogers, Robert") are returned as one part ("Rogers"). Only 65 of 1,260 PATIENT spans are missed entirely. HOSPITAL trades boundary errors for misses (strict FP 104 → 21, but 62 hospitals are now missed entirely vs 23). The likely trigger is the changed few-shot set; isolating it would need another full ablation run, which was not done.
+- **Prompt-engineering budget capped at two versions:** each further dev-driven revision makes dev results more optimistic. v1 also differed in mapping details (its own title regex, no near-miss counter), so the v1–v2 difference is not purely the prompt.
+- An earlier v1 run (commit `0b266ae`, before title stripping) is also kept under `reports/eval/superseded/`; v1's "Dr." diagnosis (40 of 63 STAFF mentions) came from an uncommitted probe and is **NOT VERIFIED** by a committed script.
 
 ### Interpretation
 
-- A 4B instruction-tuned model with 3 examples and no fine-tuning reaches strict F1 0.956 and leaks less than tuned regex (1.71% vs 2.30%) — but leaks ~140× more than the fine-tuned RoBERTa (0.012%) and is ~170× slower.
-- Its residual errors are mostly HOSPITAL and PATIENT boundaries and missed entities, not malformed output: structured output plus string mapping made the LLM pipeline reliable.
-- Only one prompt and one model were evaluated (no prompt search on dev beyond the title normalisation), so this is a lower bound on what prompting can do, not a tuned result.
+- A 4B instruction-tuned model with 3 examples and no fine-tuning reaches strict F1 0.959 on dev. Its leak (2.49%) is **comparable** to tuned regex (2.30%, CI [1.66%, 3.08%]; the intervals overlap heavily, no paired test), while regex has the higher strict F1 (0.980).
+- The fine-tuned transformer leaks far less: RoBERTa 13 characters (0.012%), DeBERTa 4 characters (0.004%), against Qwen's 2,619 — and is ~200× faster per document (22 ms vs 4.5 s).
+- Structured output + string mapping made the LLM pipeline mechanically reliable (no malformed output); its errors are boundary conventions and missed entities, which prompts can shift but did not remove.

@@ -1,6 +1,6 @@
 # Project status
 
-_Last updated: 2026-11-27 (end of Milestone 4)_
+_Last updated: 2026-11-28 (end of Milestone 5)_
 
 ## Environment
 - Windows 11 Pro · Ryzen 7 170 (8C/16T) · 15.3 GB RAM · RTX 4050 Laptop 6 GB (driver 591.62, CUDA 13.1 capable) · 145 GB free
@@ -26,6 +26,8 @@ _Last updated: 2026-11-27 (end of Milestone 4)_
   - **RoBERTa primary** (`roberta_s7`, median seed: dev strict F1 0.984, 13 leaked characters in 9 of 600 docs), **DeBERTa pre-registered accuracy variant** (`deberta_s42`), in `configs/selected_models.yaml`.
   - Independent review: 0 critical, 3 important, 9 minor — all fixed; RoBERTa retrained after the merged-prefix label fix.
 
+- **Milestone 5** — local LLM baseline (dev only): Qwen 3.5 4B via Ollama, prompt v2 (official), strict F1 0.959, leak 2.49% (comparable to regex 2.30%), 0 parse failures, 18/6,550 hallucinated mentions, ~4.5 s/doc. Independent review: 0 critical, 4 important, 7 minor — all addressed.
+
 ## Dataset status — v1 (frozen)
 | Split | Docs | Spans | Families | SHA-256 (prefix) |
 |---|---:|---:|---|---|
@@ -46,14 +48,14 @@ _Last updated: 2026-11-27 (end of Milestone 4)_
 - Ages > 89 are not annotated (out of schema).
 
 ## Tests
-- 593 passed, 3 skipped (entity-free families exempt from the ≥3-types rule). ruff + mypy --strict clean.
+- 626 passed, 3 skipped (entity-free families exempt from the ≥3-types rule). ruff + mypy --strict clean.
 
 ## Model status
-- Regex, Presidio and 9 transformer checkpoints evaluated on dev only. Checkpoints in `models/` (git-ignored; reproducible with `bash scripts/run_m4_grid.sh`). Test splits untouched.
+- Regex, Presidio, 9 transformer checkpoints and the Qwen LLM evaluated on dev only. Checkpoints in `models/` (git-ignored; reproducible with `bash scripts/run_m4_grid.sh`). Test splits untouched.
 
 ## Deployment status
 - NOT IMPLEMENTED.
 
 ## Next task
-- **Milestone 5:** local Qwen LLM baseline via Ollama (~3 GB download): JSON-schema prompting, string-to-offset mapping, parse/hallucination accounting, scored on dev.
-- **Milestone 2b:** test-OOD set (Qwen-written notes, pre-labelled by regex/Presidio/RoBERTa, corrected by the owner).
+- **Milestone 2b:** test-OOD set — Qwen-written notes in unseen styles, pre-labelled by regex/Presidio/RoBERTa, corrected by the owner (~1–2 h of hand-checking; show disagreements, measure agreement on a from-scratch sample).
+- Then **Milestone 6:** error analysis on dev → hybrid system.
